@@ -27,9 +27,12 @@ bak = tempfile.mkdtemp(prefix="sml-split-")
 for f in files:
     os.makedirs(os.path.join(bak, os.path.dirname(f)), exist_ok=True)
     shutil.copy2(f, os.path.join(bak, f))
+shutil.copy2("Makefile", os.path.join(bak, "Makefile"))
 
 def fail(msg):
     for f in files: shutil.copy2(os.path.join(bak, f), f)
+    shutil.copy2(os.path.join(bak, "Makefile"), "Makefile")
+    if os.path.exists(out_name) and out_name not in files: os.remove(out_name)
     shutil.rmtree(bak); sys.exit(msg)
 
 src = next((f for f in files if any(
@@ -38,17 +41,22 @@ src = next((f for f in files if any(
 if not src: fail("none of those routines found")
 
 L = open(src, errors="replace").read().splitlines()
-spans, cur = [], None
+# Compute every routine's start first, then end each span at the NEXT span's
+# start. Ending at the next label's own line would overlap the comment block
+# that the walk-back already claimed, and reverse-order cutting would then
+# strand local labels outside any routine.
+starts = []
 for i, l in enumerate(L):
     m = GLOBAL.match(l)
-    if m:
-        if cur: spans.append(cur + (i,))
-        s = i
-        while s > 0 and (L[s-1].startswith(";@ ") or L[s-1].strip().startswith(";")
-                         and not L[s-1].startswith("SECTION")):
-            s -= 1
-        cur = (m.group(1), s)
-if cur: spans.append(cur + (len(L),))
+    if not m: continue
+    s = i
+    while s > 0 and (L[s-1].startswith(";@ ")
+                     or (L[s-1].strip().startswith(";") and not L[s-1].startswith("SECTION"))):
+        s -= 1
+    s = max(s, starts[-1][1] + 1 if starts else 0)
+    starts.append((m.group(1), i, s))
+spans = [(n, s, (starts[k+1][2] if k + 1 < len(starts) else len(L)))
+         for k, (n, i, s) in enumerate(starts)]
 
 take = [(n, a, b) for n, a, b in spans if n in wanted]
 missing = wanted - {n for n, _, _ in take}
@@ -98,8 +106,6 @@ if obj not in mk:
 
 r = subprocess.run(["tools/verify.sh"], capture_output=True, text=True)
 if r.returncode != 0:
-    shutil.copy2(os.path.join(bak, "Makefile"), "Makefile") if os.path.exists(os.path.join(bak,"Makefile")) else None
-    os.remove(out_name)
-    fail(f"REVERTED:\n{r.stdout[-1500:]}{r.stderr[-1500:]}")
+    fail(f"REVERTED:\n{r.stdout[-1200:]}{r.stderr[-1200:]}")
 shutil.rmtree(bak)
 print(f"{out_name}: {len(take)} routines in {len(runs)} pinned sections — verified output-neutral")
