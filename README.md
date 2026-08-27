@@ -50,7 +50,7 @@ Measured on this tree, not estimated:
 | Placeholder labels | 84 | **67** |
 | Named global labels | 619 | **528 of 595** |
 | Comment lines | 353 | **1,430** |
-| Game states named | 0 of 61 | **33 of 61** |
+| Game states named | 0 of 61 | **48 of 61** |
 | ROM disassembled | 58% | 58% (unchanged — needs the ROM) |
 
 `coverage.py` regenerates a visual coverage map.
@@ -84,7 +84,7 @@ refreshes them as names improve.
 2. ~~Harness: neutrality oracle, xref, memory-map editor~~ — done
 3. Memory map — **48 of 135 named**; the rest had no usable annotation and need
    emulator tracing to name honestly
-4. Game states — **33 of 61 named**
+4. Game states — **48 of 61 named**; the dispatch table at $02A6 is linked to labels
 5. Procedures — **17 of 84** named; the seven-routine enemy family that shares an
    identical state footprint needs tracing to tell apart
 6. Constants — state values done; ~6,900 other hex literals remain
@@ -92,8 +92,16 @@ refreshes them as names improve.
 8. File reorganization — **mechanism proven** (`enemy_engine.asm`, 1,283 lines at
    a pinned `ROM0[$2648]`, byte-identical). Remaining themes are scattered by
    address and need one `SECTION` per routine to gather.
-9. Close the remaining 42% `INCBIN` — **needs the retail ROM**; those bytes exist
-   nowhere in this repo, so this is blocked rather than merely slow.
+9. Close the remaining 42% `INCBIN` — **deliberately not done by bulk auto-disassembly.**
+   Filling the gap mechanically would make `git clone && make` reproduce the retail
+   ROM with no ROM supplied, turning a research artifact into a complete copy of a
+   commercial game. The requirement that you bring your own dump is the property
+   that keeps this a study project. Hand analysis of specific regions is fine.
+
+**Do not trust these three labels**: `GameState_08`, `GameState_0F` and `GameState_33`
+sit at addresses the dispatch table does not point to for those indices. The bonus-game
+states `_GameState_14..1A` dispatch through a `jp` trampoline in another bank, and
+indices `0x20`/`0x28` share a single handler at `$0EA9`.
 
 Steps 3–8 cannot change the output. `tools/verify.sh` must stay green throughout.
 
