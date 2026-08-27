@@ -44,28 +44,67 @@ Requires **RGBDS 1.0.x** (`rgbasm --version`) and `pypng` for the asset dump scr
 
 Measured on this tree, not estimated:
 
-| | |
-|---|---|
-| ROM disassembled | **58%** — bank 0: 75%, bank 1: 34%, bank 2: 62%, bank 3: 60% |
-| Global labels | 701, of which 84 are still placeholders (`Call_5CF`, `Data_3FC4`) |
-| Comment lines | 353, against ~11,000 instructions |
-| Named RAM | 36 WRAM + 37 HRAM symbols (~81 HRAM bytes still unidentified) |
+| | at fork | now |
+|---|---|---|
+| Raw memory references | 787 across 135 addresses | **408** — 48 addresses named |
+| Placeholder labels | 84 | **67** |
+| Named global labels | 619 | **528 of 595** |
+| Comment lines | 353 | **1,430** |
+| Game states named | 0 of 61 | **33 of 61** |
+| ROM disassembled | 58% | 58% (unchanged — needs the ROM) |
 
 `coverage.py` regenerates a visual coverage map.
 
+## Tooling (`tools/`)
+
+The project runs on a verification harness rather than on care:
+
+| | |
+|---|---|
+| `verify.sh` | The oracle. Rebuilds and byte-compares against `tools/.baseline`. |
+| `rename.py` | Applies renames, verifies, reverts the whole batch on any change. |
+| `xref.py` | Cross-reference a symbol or address with its enclosing routine. |
+| `memmap.py` | Parse/edit the `ds`-allocated memory maps; `check` validates every resolved address against its inline comment. |
+| `gen-headers.py` | Regenerates the derived interface header above each routine. |
+| `constify-states.py` | Replaces bare `hGameState` literals with `GAMESTATE_*`. |
+
+**Naming carries an evidence standard.** Names come from the original authors'
+own inline annotations, tagged `[A]` (declarative, or >=2 independent sites
+agreeing) or `[B]` (author hedged but usage coherent) in `tools/names-*.txt`.
+Vague annotations were deliberately left unnamed — a confidently wrong name in a
+study reference is worse than no name.
+
+**Routine headers are derived, not written.** Every field in a `;@` block is read
+out of the code, so it cannot drift into being wrong, and `gen-headers.py`
+refreshes them as names improve.
+
 ## Roadmap
 
-Work is ordered so the cheap ROM-invariant passes come first:
-
 1. ~~Toolchain: build under current RGBDS~~ — done
-2. Name the 84 placeholder labels and the local labels, from their call sites
-3. Lift the ~6,900 raw hex literals into named constants
-4. Finish the HRAM map — the remaining unnamed bytes are the game's hot state
-5. Per-routine header comments: inputs, outputs, registers clobbered, callers
-6. Reorganize source into thematic files (free, thanks to fixed-address sections)
-7. Close the remaining 42% of `INCBIN` — real reverse engineering, larger than 1–6 combined
+2. ~~Harness: neutrality oracle, xref, memory-map editor~~ — done
+3. Memory map — **48 of 135 named**; the rest had no usable annotation and need
+   emulator tracing to name honestly
+4. Game states — **33 of 61 named**
+5. Procedures — **17 of 84** named; the seven-routine enemy family that shares an
+   identical state footprint needs tracing to tell apart
+6. Constants — state values done; ~6,900 other hex literals remain
+7. Comments — 188 derived headers; hand-written prose explaining *why* is the gap
+8. File reorganization — **mechanism proven** (`enemy_engine.asm`, 1,283 lines at
+   a pinned `ROM0[$2648]`, byte-identical). Remaining themes are scattered by
+   address and need one `SECTION` per routine to gather.
+9. Close the remaining 42% `INCBIN` — **needs the retail ROM**; those bytes exist
+   nowhere in this repo, so this is blocked rather than merely slow.
 
-Steps 2–6 cannot change the output, so `make check` must stay green through all of them.
+Steps 3–8 cannot change the output. `tools/verify.sh` must stay green throughout.
+
+### Extracting a file (the proven procedure)
+
+Sections are address-pinned, so a contiguous address range can move to its own
+file: cut the lines, give the new file `SECTION "name", ROM0[$START]`, resume the
+original with `SECTION "...", ROM0[$END]`, add the object to `OBJECTS_RAW`, and
+verify. Cross-object references — including `ldh` into HRAM — resolve at link
+time, so the extracted file does **not** re-include `wram.asm`/`hram.asm` (doing
+so would define their sections twice).
 
 ## RGBDS 1.0 migration notes
 

@@ -25,7 +25,7 @@ OBJ_GB           = $(OBJDIR)/gb
 OBJ_DUCK         = $(OBJDIR)/duck
 OBJ_DUCK_MBC5    = $(OBJDIR)/duck_mbc5
 
-OBJECTS_RAW := bank0.o bank1.o bank2.o bank3.o music.o levels/enemy_locations.o
+OBJECTS_RAW := bank0.o enemy_engine.o bank1.o bank2.o bank3.o music.o levels/enemy_locations.o
 
 OBJECTS_GB        = $(OBJECTS_RAW:%=$(OBJ_GB)/%)
 OBJECTS_DUCK      = $(OBJECTS_RAW:%=$(OBJ_DUCK)/%)
