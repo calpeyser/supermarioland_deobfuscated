@@ -9,5 +9,5 @@ h=$(tools/build.sh)
 if [ "${1:-}" = "--set" ]; then echo "$h" > "$B"; echo "baseline set: $h"; exit 0; fi
 [ -f "$B" ] || { echo "no baseline; run tools/verify.sh --set" >&2; exit 2; }
 want=$(cat "$B")
-if [ "$h" = "$want" ]; then echo "OK  $h"; exit 0; fi
+if [ "$h" = "$want" ]; then echo "OK  $h"; exec tools/check-symbols.py; fi
 echo "CHANGED  built=$h  baseline=$want" >&2; exit 1
