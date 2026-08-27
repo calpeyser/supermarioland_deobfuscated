@@ -11,7 +11,7 @@ wLivesEarnedLost::
 
 ds 1		; C0A4
 
-wGameOverWindowEnabled :: ; C0A5
+wGameOverWindowEnabled:: ; C0A5
 	db
 
 wNumContinues::	; C0A6
@@ -90,7 +90,7 @@ wFloaty2_SpriteIfCoin::
 wFloaty3_SpriteIfCoin::
 	db
 
-wNextFloatyOAMIndex :: ; DA0B
+wNextFloatyOAMIndex:: ; DA0B
 	ds 1
 
 wFloaty0_IsCoin:: ; DA0C - DA0F
@@ -125,7 +125,7 @@ ds 1				; DA1C
 wGameTimerExpiringFlag:: ; DA1D do i have a better name?
 	db
 
-wBonusGameGrowAnimationFlag :: ; DA1E Long name...
+wBonusGameGrowAnimationFlag:: ; DA1E Long name...
 	db
 
 wBonusGameAnimationTimer:: ; DA1F

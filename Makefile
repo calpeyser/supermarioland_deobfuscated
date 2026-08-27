@@ -52,17 +52,17 @@ check: $(BIN_GB)
 # Export everything for the moment, to make debugging easier
 $(OBJ_GB)/%.o: %.asm $(INCDIR)/settings.inc $(INCDIR)/hardware.inc # Make sure inc files trigger rebuilds
 	@echo " ASM	$@"
-	rgbasm  -l -E -h -o $@ $<
+	rgbasm  -E -Wno-obsolete -o $@ $<
 
 $(BIN_GB): $(OBJECTS_GB)
 	@echo " LINK	$@"
-	rgblink -d -n $*.sym -m $*.map -o $@ $^
+	rgblink -d -n $(BINDIR_GB)/supermarioland.sym -m $(BINDIR_GB)/supermarioland.map -o $@ $^
 	rgbfix -v $@
 
 
 $(OBJ_DUCK)/%.o: %.asm $(INCDIR)/settings.inc $(INCDIR)/hardware.inc # Make sure inc files trigger rebuilds
 	@echo " ASM	$@"
-	rgbasm  -DTARGET_MEGADUCK -l -E -h -o $@ $<
+	rgbasm  -DTARGET_MEGADUCK -E -Wno-obsolete -o $@ $<
 
 $(BIN_DUCK): $(OBJECTS_DUCK)
 	@echo " LINK	$@"
@@ -71,7 +71,7 @@ $(BIN_DUCK): $(OBJECTS_DUCK)
 
 $(OBJ_DUCK_MBC5)/%.o: %.asm $(INCDIR)/settings.inc $(INCDIR)/hardware.inc # Make sure inc files trigger rebuilds
 	@echo " ASM	$@"
-	rgbasm  -DTARGET_MEGADUCK -DMEGADUCK_MBC5 -l -E -h -o $@ $<
+	rgbasm  -DTARGET_MEGADUCK -DMEGADUCK_MBC5 -E -Wno-obsolete -o $@ $<
 
 $(BIN_DUCK_MBC5): $(OBJECTS_DUCK_MBC5)
 	@echo " LINK	$@"

@@ -15,18 +15,18 @@ MACRO Noise
 	ENDR
 ENDM
 
-C_  EQU 1
-C_# EQU 2
-D_  EQU 3
-D_# EQU 4
-E_  EQU 5
-F_  EQU 6
-F_# EQU 7
-G_  EQU 8
-G_# EQU 9
-A_  EQU 10
-A_# EQU 11
-B_  EQU 12
+DEF C_  EQU 1
+DEF Cs_ EQU 2
+DEF D_  EQU 3
+DEF Ds_ EQU 4
+DEF E_  EQU 5
+DEF F_  EQU 6
+DEF Fs_ EQU 7
+DEF G_  EQU 8
+DEF Gs_ EQU 9
+DEF A_  EQU 10
+DEF As_ EQU 11
+DEF B_  EQU 12
 
 MACRO Notes
 	IF _NARG % 2 != 0

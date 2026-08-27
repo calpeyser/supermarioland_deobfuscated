@@ -227,7 +227,7 @@ Init::	; 0185
 	xor a
 	ldh [rSCY], a
 	ldh [rSCX], a
-	ldh [$A4], a
+	ldh [$FFA4], a
 	ld a, LCDCF_ON ; $80
 	ldh [rLCDC], a	; Turn LCD on, but don't display anything
 .wait
@@ -845,7 +845,7 @@ GameState_0F::
 	ld [$DFF0], a
 	ld [$DFF8], a
 	ld a, $7			; enable timer interrupt TODO
-	ld [rIE], a
+	ldh [rIE], a
 	ret
 
 ; TODO more random data... Demo levels: 1-1, 1-2, 3-3
@@ -1069,7 +1069,7 @@ GameState_02::
 	call Call_1ED4		; clears sprites
 	call Call_165E		; clears "overlay"
 	ld hl, hScreenIndex
-	ld a, [$FFF9]		; nonzero if underground
+	ldh a, [$FFF9]		; nonzero if underground
 	and a
 	jr z, .overworld
 	xor a
@@ -2431,7 +2431,7 @@ GameState_23:: ; F33
 	ld a, [$C203]
 	and a, $F0
 	ld [$C203], a		; mario standing still
-	ld a, [$FFE0]		; top of gate?
+	ldh a, [$FFE0]		; top of gate?
 	sub a, $40			; two tiles up
 	add a, $04			; four to the right
 	ld b, a
@@ -2472,7 +2472,7 @@ PrintVictoryMessage:: ; F8A
 	ldh a, [hTimer]
 	and a
 	ret nz
-	ld a, [$FFFB]	; keeps track of how many letters were already printed
+	ldh a, [$FFFB]	; keeps track of how many letters were already printed
 	ld e, a
 	ld d, $00
 	add hl, de
@@ -3001,7 +3001,7 @@ GameState_31:: ; 12F1
 	push af
 	ldh a, [$FFFB]
 	dec a				; FFFB starts at 4. So traverse 4 blocks
-	ld [$FFFB], a
+	ldh [$FFFB], a
 	jr nz, .out
 	ldh [rLYC], a		; A is 0 here. Removes HUD?
 	ld a, $21
@@ -3421,7 +3421,7 @@ GameState_0A:: ; 162F
 	ldh [hGameState], a
 	ldh [hScrollX], a
 	ld a, (LCDCF_ON | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_BGON); $C3			; todo
-	ld [rLCDC], a
+	ldh [rLCDC], a
 	ei
 	ret
 
@@ -3891,7 +3891,7 @@ Jmp_185D:
 	ld a, d
 	ldh [$FFB0], a
 	ld a, e					; store HL in FFEF, FFF0, FFB0 and FFAF?
-	ld [$FFAF], a			; what a mess
+	ldh [$FFAF], a			; what a mess
 	call Call_3F13
 	ld hl, wOAMBuffer + 4*$B
 	ld a, [$C201]			; y pos
@@ -3900,7 +3900,7 @@ Jmp_185D:
 	ldh [$FFF1], a
 	ldh a, [hScrollX]
 	ld b, a
-	ld a, [$FFAE]
+	ldh a, [$FFAE]
 	ld c, a
 	ldh [$FFF2], a
 	sub b
@@ -4313,7 +4313,7 @@ Call_1B86:: ; 1B86
 	ld a, $05
 	ld [$DFE0], a		; todo sound effect
 	ld a, h
-	ld [$FFB0], a
+	ldh [$FFB0], a
 	ld a, l
 	ldh [$FFAF], a
 	call Call_3F13
@@ -7382,7 +7382,7 @@ GameState_12:: ; 3D97
 	swap a
 	ld [de], a		; Print lives at the appropriate position
 	ld a, (LCDCF_ON | LCDCF_OBJON | LCDCF_BGON); $83	; todo
-	ld [rLCDC], a	; Turn on LCD, background, objects
+	ldh [rLCDC], a	; Turn on LCD, background, objects
 	ld a, $13	; todo
 	ldh [hGameState], a
 	ret
