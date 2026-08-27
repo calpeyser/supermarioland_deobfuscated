@@ -90,10 +90,10 @@ Call_4823:: ; 4823
 	ldh [$FF97], a
 	ld a, [hl]
 	and a
-	jr z, .jmp_484A
+	jr z, .skip2
 	cp a, $80
-	jr z, .jmp_4848
-.jmp_4831
+	jr z, .skip
+.loop
 	ldh a, [$FF96]
 	ld h, a
 	ldh a, [$FF97]
@@ -106,22 +106,22 @@ Call_4823:: ; 4823
 	ret z
 	jr Call_4823
 
-.jmp_4843
+.loop2
 	xor a
 	ldh [$FF95], a
-	jr .jmp_4831
+	jr .loop
 
-.jmp_4848
+.skip
 	ldh [$FF95], a
-.jmp_484A
+.skip2
 	ld b, $07
 	ld de, $FF86
-.jmp_484F
+.loop3
 	ldi a, [hl]
 	ld [de], a
 	inc de
 	dec b
-	jr nz, .jmp_484F
+	jr nz, .loop3
 	ldh a, [$FF89]
 	ld hl, $4C37
 	rlca
@@ -145,28 +145,28 @@ Call_4823:: ; 4823
 	ld e, [hl]
 	inc hl
 	ld d, [hl]
-.jmp_4872
+.loop4
 	inc hl
 	ldh a, [$FF8C]
 	ldh [$FF94], a
 	ld a, [hl]
 	cp a, $FF
-	jr z, .jmp_4843
+	jr z, .loop2
 	cp a, $FD
-	jr nz, .jmp_488C
+	jr nz, .skip3
 	ldh a, [$FF8C]
 	xor a, $10
 	ldh [$FF94], a
-	jr .jmp_4872
+	jr .loop4
 
-.jmp_4888
+.loop5
 	inc de
 	inc de
-	jr .jmp_4872
+	jr .loop4
 
-.jmp_488C
+.skip3
 	cp a, $FE
-	jr z, .jmp_4888
+	jr z, .loop5
 	ldh [$FF89], a
 	ldh a, [$FF87]
 	ld b, a
@@ -174,13 +174,13 @@ Call_4823:: ; 4823
 	ld c, a
 	ldh a, [$FF8B]
 	bit 6, a
-	jr nz, .jmp_48A3
+	jr nz, .skip4
 	ldh a, [$FF90]
 	add b
 	adc c
-	jr .jmp_48AD
+	jr .skip5
 
-.jmp_48A3
+.skip4
 	ld a, b
 	push af
 	ldh a, [$FF90]
@@ -189,7 +189,7 @@ Call_4823:: ; 4823
 	sub b
 	sbc c
 	sbc a, $08
-.jmp_48AD
+.skip5
 	ldh [$FF93], a
 	ldh a, [$FF88]
 	ld b, a
@@ -199,13 +199,13 @@ Call_4823:: ; 4823
 	ld c, a
 	ldh a, [$FF8B]
 	bit 5, a
-	jr nz, .jmp_48C2
+	jr nz, .skip6
 	ldh a, [$FF91]
 	add b
 	adc c
-	jr .jmp_48CC
+	jr .skip7
 
-.jmp_48C2
+.skip6
 	ld a, b
 	push af
 	ldh a, [$FF91]
@@ -214,7 +214,7 @@ Call_4823:: ; 4823
 	sub b
 	sbc c
 	sbc a, $08
-.jmp_48CC
+.skip7
 	ldh [$FF92], a
 	push hl
 	ldh a, [$FF8D]
@@ -223,13 +223,13 @@ Call_4823:: ; 4823
 	ld l, a
 	ldh a, [$FF95]
 	and a
-	jr z, .jmp_48DE
+	jr z, .skip8
 	ld a, $FF
-	jr .jmp_48E0
+	jr .skip9
 
-.jmp_48DE
+.skip8
 	ldh a, [$FF93]
-.jmp_48E0
+.skip9
 	ldi [hl], a
 	ldh a, [$FF92]
 	ldi [hl], a
@@ -248,9 +248,9 @@ Call_4823:: ; 4823
 	ld a, l
 	ldh [$FF8E], a
 	pop hl
-	jp .jmp_4872
+	jp .loop4
 
-.jmp_48FC
+.out
 	ld hl, $C209
 	ld a, [hl]
 	ld b, a
@@ -280,16 +280,16 @@ Call_490D:: ; 490D
 	and a
 	ret z
 	cp a, $02
-	jr z, .jmp_4933
+	jr z, .skip
 	add hl, de
 	ld a, [hl]
 	cp a, $7F
-	jr z, .jmp_4948
+	jr z, .skip3
 	ld a, [bc]			; C2x1
 	sub [hl]
 	ld [bc], a
 	inc e
-.jmp_4929
+.loop
 	ld a, e
 	inc c
 	inc c
@@ -301,27 +301,27 @@ Call_490D:: ; 490D
 	ld [bc], a			; C2x8
 	ret
 
-.jmp_4933
+.skip
 	ld a, e
 	cp a, $FF
-	jr z, .jmp_495B
+	jr z, .skip4
 	add hl, de
 	ld a, [hl]
 	cp a, $7F
-	jr z, .jmp_4944
-.jmp_493E
+	jr z, .skip2
+.loop2
 	ld a, [bc]			; C2x1
 	add [hl]
 	ld [bc], a
 	dec e
-	jr .jmp_4929
+	jr .loop
 
-.jmp_4944
+.skip2
 	dec hl
 	dec e
-	jr .jmp_493E
+	jr .loop2
 
-.jmp_4948
+.skip3
 	dec de
 	dec hl
 	ld a, $02
@@ -338,9 +338,9 @@ Call_490D:: ; 490D
 	dec c
 	dec c
 	dec c
-	jr .jmp_493E
+	jr .loop2
 
-.jmp_495B
+.skip4
 	xor a
 	inc c
 	inc c
@@ -363,132 +363,132 @@ Jmp_4966:: ; 4966
 	inc e
 	ld a, [de]
 	cp a, $0F
-	jr nc, .jmp_49B5
+	jr nc, .loop2
 	inc e
 	dec a
 	ld [de], a
 	dec e
 	ld a, $0F
 	ld [de], a
-	jr .jmp_49B5
-.jmp_4975
+	jr .loop2
+.loop
 	push af
 	ld a, [de]
 	and a
-	jr nz, .jmp_4988
+	jr nz, .skip2
 	ld a, [wMarioSpeed]
 	cp a, $03
 	ld a, $02
-	jr c, .jmp_4985
+	jr c, .skip
 	ld a, $04
-.jmp_4985
+.skip
 	ld [wMarioWalkRunSpeed], a			; walking or running
-.jmp_4988
+.skip2
 	pop af
-	jr .jmp_49AC
+	jr .skip5
 
-.jmp_498B
+.skip3
 	ldh a, [hGameState]
 	cp a, $0D
-	jp z, .jmp_4A7F
+	jp z, .out
 	ld de, wMarioJumpStatus			; jump status
 	ldh a, [hJoyPressed]
 	ld b, a
 	ldh a, [hJoyHeld]
 	bit 1, a				; B button todo
-	jr nz, .jmp_4975
+	jr nz, .loop
 	push af
 	ld a, [wMarioWalkRunSpeed]			; walking running
 	cp a, $04
-	jr nz, .jmp_49AB
+	jr nz, .skip4
 	ld a, $02
 	ld [wMarioWalkRunSpeed], a
-.jmp_49AB
+.skip4
 	pop af
-.jmp_49AC
+.skip5
 	bit 0, a				; A button
-	jr nz, .jmp_49BF
+	jr nz, .skip6
 	ld a, [de]
 	cp a, $01
 	jr z, Jmp_4966
-.jmp_49B5
+.loop2
 	bit 7, b				; Down button
-	jp nz, .jmp_4A77
-.jmp_49BA
+	jp nz, .skip15
+.loop3
 	bit 1, b				; B button
-	jr nz, .jmp_49FD
+	jr nz, .skip9
 	ret
 
-.jmp_49BF
+.skip6
 	ld a, [de]
 	and a
-	jr nz, .jmp_49B5
+	jr nz, .loop2
 	ld hl, wMarioOnGround			; 1 if on ground
 	ld a, [hl]
 	and a
-	jr z, .jmp_49B5
+	jr z, .loop2
 	bit 0, b				; A button
-	jr z, .jmp_49B5
+	jr z, .loop2
 	ld [hl], $00
 	ld hl, wMarioAnimationIndex			; animation thing
 	push hl
 	ld a, [hl]
 	cp a, $18				; crouching big?
-	jr z, .jmp_49F2
+	jr z, .skip8
 	and a, $F0
 	or a, $04
 	ld [hl], a
 	ld a, [wMarioWalkRunSpeed]			; walking running
 	cp a, $04
-	jr z, .jmp_49ED
+	jr z, .skip7
 	ld a, $02
 	ld [wMarioWalkRunSpeed], a
 	ld [$C208], a
-.jmp_49ED
+.skip7
 	ld hl, wMarioSpeed
 	ld [hl], $30
-.jmp_49F2
+.skip8
 	ld hl, $DFE0
 	ld [hl], SFX_JUMP
 	ld a, $01
 	ld [de], a
 	pop hl
-	jr .jmp_49B5
+	jr .loop2
 
-.jmp_49FD
+.skip9
 	ld hl, wMarioSpeed
 	ld a, [hl]
 	cp a, $06
-	jr nz, .jmp_4A0C
+	jr nz, .loop4
 	ldh a, [hInMenuOrDemo]
 	and a
-	jr nz, .jmp_4A0C
+	jr nz, .loop4
 	ld [hl], $00
-.jmp_4A0C
+.loop4
 	ldh a, [hGameState]
 	cp a, $0D
 	ld b, $03
-	jr z, .jmp_4A1A
+	jr z, .skip10
 	ldh a, [hSuperballMario]
 	and a
 	ret z
 	ld b, $01
-.jmp_4A1A
+.skip10
 	ld hl, hProjectileStatus			; projectile status?
 	ld de, wOAMBuffer
-.jmp_4A20
+.loop5
 	ldi a, [hl]
 	and a
-	jr z, .jmp_4A2C
+	jr z, .skip11
 	inc e
 	inc e
 	inc e
 	inc e
 	dec b
-	jr nz, .jmp_4A20
+	jr nz, .loop5
 	ret
 
-.jmp_4A2C
+.skip11
 	push hl
 	ld hl, wMarioFacing
 	ld b, [hl]
@@ -499,9 +499,9 @@ Jmp_4966:: ; 4966
 	inc e
 	ld c, $02
 	bit 5, b			; left button
-	jr z, .jmp_4A41
+	jr z, .skip12
 	ld c, $F8
-.jmp_4A41
+.skip12
 	ldi a, [hl]
 	add c
 	ld [de], a
@@ -509,13 +509,13 @@ Jmp_4966:: ; 4966
 	inc e
 	ldh a, [hGameState]
 	cp a, $0D
-	jr nz, .jmp_4A57
+	jr nz, .skip13
 	ld c, $7A
 	ldh a, [hLevelIndex]
 	cp a, $0B			; last level?
-	jr nz, .jmp_4A57
+	jr nz, .skip13
 	ld c, $6E
-.jmp_4A57
+.skip13
 	ld a, c
 	ld [de], a
 	inc e
@@ -525,9 +525,9 @@ Jmp_4966:: ; 4966
 	dec l
 	ld c, $0A
 	bit 5, b			; left button?
-	jr nz, .jmp_4A66
+	jr nz, .skip14
 	ld c, $09
-.jmp_4A66
+.skip14
 	ld [hl], c
 	ld hl, $DFE0
 	ld [hl], SFX_SUPERBALL
@@ -537,22 +537,22 @@ Jmp_4966:: ; 4966
 	ld [wSuperballTTL], a
 	ret
 
-.jmp_4A77
+.skip15
 	ld hl, wMarioSpeed
 	ld [hl], $20
-	jp .jmp_49BA
-.jmp_4A7F
+	jp .loop3
+.out
 	ldh a, [hJoyPressed]
 	and a, $03				; A or B
-	jr nz, .jmp_4A0C
+	jr nz, .loop4
 	ldh a, [hJoyHeld]
 	bit 0, a				; A button
 	ret z
 	ld hl, $C0AE
 	ld a, [hl]
 	and a
-.jmp_4A8F
-	jp z, .jmp_4A0C
+.out2
+	jp z, .loop4
 	dec [hl]
 	ret
 
@@ -655,12 +655,12 @@ _UpdateSound__6662:: ; 6662
 	ld c, $D3
 	ld a, [$FF00+c]	; ?? To override other SFXs?
 	and a
-	jr z, .jmp_6688
+	jr z, .loop
 	xor a
 	ld [$FF00+c], a
 	ld a, $08		; 1UP sound
 	ld [$DFE0], a
-.jmp_6688
+.loop
 	call PlaySquareSFX
 	call PlayNoiseSFX	; play noise sfx
 	call PlayWaveSFX	; play wave sfx
@@ -710,7 +710,7 @@ _UpdateSound__6662:: ; 6662
 .unpauseMusic
 	xor a
 	ldh [hPauseTuneTimer], a
-	jr .jmp_6688
+	jr .loop
 
 .soundPaused
 	ld hl, hPauseTuneTimer
@@ -828,7 +828,7 @@ GiraChannelData:: ; 6776
 ;@   calls     : Call_6791, sfx_play__Jmp_69C6
 ;@ --------------------------------------------------------------------
 StartGiraSFX:: ; 677B
-	call Call_6791.jmp_679C
+	call Call_6791.out2
 	ret z
 	ld a, $0E
 	ld hl, GiraChannelData
@@ -844,17 +844,17 @@ SuperballChannelData:: ; 678C
 ; used to check if new SFX overrides the one currently playing
 Call_6791:: ; 6791
 	ld a, [$DFE1]
-	jr .jmp_67A2 ; WTF is this bullshit
+	jr .out3 ; WTF is this bullshit
 
-.jmp_6796
+.out
 	ld a, [$DFE1]
 	cp a, SFX_STOMP
 	ret z
-.jmp_679C
+.out2
 	ld a, [$DFE1]
 	cp a, SFX_COIN
 	ret z
-.jmp_67A2
+.out3
 	cp a, SFX_GROW
 	ret z
 	cp a, SFX_INJURY
@@ -870,7 +870,7 @@ Call_6791:: ; 6791
 ;@   calls     : Call_6791, sfx_play__Jmp_69C6
 ;@ --------------------------------------------------------------------
 StartJumpSFX:: ; 67AF
-	call Call_6791.jmp_6796
+	call Call_6791.out
 	ret z
 	ld a, $10
 	ld hl, JumpChannelData
@@ -914,7 +914,7 @@ ContinueJumpSFX:: ; 67C4
 ;@   calls     : Call_6791, sfx_play__Jmp_69C6
 ;@ --------------------------------------------------------------------
 StartSuperballSFX:: ; 67E4
-	call Call_6791.jmp_6796
+	call Call_6791.out
 	ret z
 	ld a, $03
 	ld hl, SuperballChannelData
@@ -993,7 +993,7 @@ StompChannelData2::
 ;@   calls     : Call_6791, sfx_play__Jmp_69C6
 ;@ --------------------------------------------------------------------
 StartStompSFX:: ; 683D
-	call Call_6791.jmp_679C
+	call Call_6791.out2
 	ret z
 	ld a, $08
 	ld hl, StompChannelData1
@@ -1011,12 +1011,12 @@ ContinueStompSFX:: ; 6849
 	ld a, [hl]
 	inc [hl]
 	cp a, $00
-	jr z, .jmp_685D
+	jr z, .skip
 	cp a, $01
 	jp z, ContinueSquareSFX.stop
 	ret
 
-.jmp_685D
+.skip
 	ld hl, StompChannelData2
 	jp SetupChannel.square1
 
@@ -1077,7 +1077,7 @@ BumpChannelData:: ;
 ;@   calls     : Call_6791, sfx_play__Jmp_69C6
 ;@ --------------------------------------------------------------------
 StartBumpSFX:: ; 68A5
-	call Call_6791.jmp_679C
+	call Call_6791.out2
 	ret z
 	ld a, $08
 	ld hl, BumpChannelData
@@ -1791,7 +1791,7 @@ Jmp_6BF4: ; 6BF4
 	ld h, d
 	call SetupWavePattern
 	pop hl
-	jr Jmp_6C00.jmp_6C2A
+	jr Jmp_6C00.skip
 
 ;@ --------------------------------------------------------------------
 ;@ Jmp_6C00   [03:6C00]   32 lines
@@ -1825,9 +1825,9 @@ Jmp_6C00: ; 6C00
 	pop hl
 	cp a, 3						; wave channel
 	jr z, Jmp_6BF4
-.jmp_6C2A
+.skip
 	call IncrementPointer
-	jp PlayMusic.jmp_6CD7
+	jp PlayMusic.skip2
 
 ; increment the address located at HL
 IncrementPointer:: ; 6C30
@@ -1879,18 +1879,18 @@ LoadFromHLindirect:: ; 6C45
 ;@ --------------------------------------------------------------------
 UpdateSoundChannel:
 	pop hl
-	jr .jmp_6C7A
+	jr .skip3
 
-.jmp_6C4F
+.skip
 	ldh a, [hCurrentChannel]
 	cp a, $03			; wave
-	jr nz, .jmp_6C65
+	jr nz, .skip2
 	ld a, [$DF38]
 	bit 7, a
-	jr z, .jmp_6C65
+	jr z, .skip2
 	ld a, [hl]			; DF32?
 	cp a, $06
-	jr nz, .jmp_6C65
+	jr nz, .skip2
     ; 50% volume
     ; #MD NR32 OK
     ;
@@ -1902,7 +1902,7 @@ UpdateSoundChannel:
     ; instead of hard wired $40 (plus, 50% / Medium is the same for both)
 	ld a, AUDVOL_CH3_MED ; $40
 	ldh [rNR32], a		; wave channel volume    ; #MD: OK
-.jmp_6C65
+.skip2
 	push hl
 	ld a, l
 	add a, $09
@@ -1916,19 +1916,19 @@ UpdateSoundChannel:
 	bit 7, [hl]			; DFxF lock status
 	jr nz, UpdateSoundChannel		; jump if locked
 	pop hl
-	call PlayMusic.jmp_6DDC
-.jmp_6C7A
+	call PlayMusic.skip14
+.skip3
 	dec l
 	dec l
 	jp PlayMusic.nextChannel
 
-.jmp_6C7F
+.skip4
 	dec l
 	dec l
 	dec l
 	dec l
 	call IncrementPointerTwice
-.jmp_6C86
+.loop
 	ld a, l
 	add a, $04
 	ld e, a
@@ -1939,7 +1939,7 @@ UpdateSoundChannel:
 	cp a, $FF
 	jr z, .restartChannel
 	inc l
-	jp PlayMusic.jmp_6CD5
+	jp PlayMusic.skip
 
 .restartChannel
 	dec l
@@ -1955,7 +1955,7 @@ UpdateSoundChannel:
 	ldi [hl], a					; put it in DFx0-DFx1
 	ld a, d
 	ldd [hl], a
-	jr .jmp_6C86
+	jr .loop
 
 .stopSong
 	ld hl, wCurrentSong
@@ -1980,25 +1980,25 @@ PlayMusic:: ; 6CBE
 	ld a, 1						; start from channel 1, square (with sweep)
 	ldh [hCurrentChannel], a
 	ld hl, $DF10
-.jmp_6CCB
+.loop2
 	inc l
 	ldi a, [hl]					; DFx1
 	and a
-	jp z, UpdateSoundChannel.jmp_6C7A
+	jp z, UpdateSoundChannel.skip3
 	dec [hl]					; DFx2
-	jp nz, UpdateSoundChannel.jmp_6C4F
-.jmp_6CD5
+	jp nz, UpdateSoundChannel.skip
+.skip
 	inc l
 	inc l
-.jmp_6CD7
+.skip2
 	call LoadFromHLindirect		; DFx4 - DFx5
 	cp a, $00					; stores a copy in B
-	jp z, UpdateSoundChannel.jmp_6C7F
+	jp z, UpdateSoundChannel.skip4
 	cp a, $9D
 	jp z, Jmp_6C00
 	and a, $F0
 	cp a, $A0					; set note length?
-	jr nz, .jmp_6D04
+	jr nz, .skip3
 	ld a, b
 	and a, $0F
 	ld c, a
@@ -2017,14 +2017,14 @@ PlayMusic:: ; 6CBE
 	ldi [hl], a					; DFx3
 	call IncrementPointer
 	call LoadFromHLindirect		; DFx4 - DFx5
-.jmp_6D04
+.skip3
 	ld a, b
 	ld c, a
 	ld b, $00
 	call IncrementPointer		; DFx4 - DFx5
 	ldh a, [hCurrentChannel]
 	cp a, 4						; Noise
-	jp z, .jmp_6D34
+	jp z, .skip5
 	push hl
 	ld a, l
 	add a, $05
@@ -2035,7 +2035,7 @@ PlayMusic:: ; 6CBE
 	inc l
 	ld a, c
 	cp a, $01
-	jr z, .jmp_6D2F
+	jr z, .skip4
 	ld [hl], 00					; DFxB
 	ld hl, NotePitches
 	add hl, bc
@@ -2045,14 +2045,14 @@ PlayMusic:: ; 6CBE
 	ld a, [hl]
 	ld [de], a					; DFxA
 	pop hl
-	jp .jmp_6D4B
+	jp .skip6
 
-.jmp_6D2F
+.skip4
 	ld [hl], $01
 	pop hl
-	jr .jmp_6D4B
+	jr .skip6
 
-.jmp_6D34						; Noisy stuff
+.skip5						; Noisy stuff
 	push hl
 	ld de, $DF46				; volume (envelope)?
 	ld hl, Data_6F06
@@ -2066,24 +2066,24 @@ PlayMusic:: ; 6CBE
 	jr nz, .loop
 	ld c, LOW(rNR41)  ; #MD: OK
 	ld hl, $DF44
-	jr .jmp_6D78
+	jr .skip10
 
-.jmp_6D4B
+.skip6
 	push hl
 	ldh a, [hCurrentChannel]
 	cp a, 1					; Square 1
-	jr z, .jmp_6D73
+	jr z, .skip9
 	cp a, 2					; Square 2
-	jr z, .jmp_6D6F
+	jr z, .skip8
 	ld c, LOW(rNR30)		; Wave  ; #MD: OK
 	ld a, [$DF3F]			; Lock
 	bit 7, a
-	jr nz, .jmp_6D64
+	jr nz, .skip7
 	xor a
 	ld [$FF00+c], a  ; NR30 : #MD: OK
 	ld a, $80
 	ld [$FF00+c], a  ; NR30 : #MD: OK
-.jmp_6D64
+.skip7
 	inc c  ; Now expecting to point to NR31 : #MD: OK
 	inc l
 	inc l
@@ -2092,13 +2092,13 @@ PlayMusic:: ; 6CBE
 	ldi a, [hl]
 	ld e, a
 	ld d, $00
-	jr .jmp_6D84
+	jr .skip11
 
-.jmp_6D6F
+.skip8
 	ld c, LOW(rNR21)  ; #MD: OK
-	jr .jmp_6D78
+	jr .skip10
 
-.jmp_6D73
+.skip9
     IF DEF(TARGET_MEGADUCK)  ; #MD: Patch: OK (no addr change)
     ; Handle changed register address order
         ld   c, LOW(rNR11)  ; #MD: OK
@@ -2111,29 +2111,29 @@ PlayMusic:: ; 6CBE
         inc c
     ENDC
 
-.jmp_6D78                   ; Entering from: jmp_6D6F and jmp_6D34, will have C expecting to point to NR21 and NR41 with LDH : #MD: OK
+.skip10                   ; Entering from: jmp_6D6F and jmp_6D34, will have C expecting to point to NR21 and NR41 with LDH : #MD: OK
 	inc l
 	inc l
 	inc l
 	ldd a, [hl]				; DFx7
 	and a
-    jr   nz, .jmp_6DCE  ; .hasWavRam
+    jr   nz, .skip13  ; .hasWavRam
 	ldi a, [hl]				; DFx6
 	ld e, a
 
-.jmp_6D81
+.loop3
 	inc l
 	ldi a, [hl]				; DFx8
 	ld d, a
-.jmp_6D84                   ; Entering from: jmp_6D64 will have C expecting to point to NR31 with LDH : #MD: OK
+.skip11                   ; Entering from: jmp_6D64 will have C expecting to point to NR31 with LDH : #MD: OK
 	push hl
 	inc l
 	inc l
 	ldi a, [hl]				; DFxB
 	and a
-	jr z, .jmp_6D8D
+	jr z, .skip12
 	ld e, $08
-.jmp_6D8D
+.skip12
 	inc l
 	inc l
 	ld [hl], $00			; DFxE
@@ -2210,7 +2210,7 @@ PlayMusic:: ; 6CBE
 	ld [de], a
 	ld de, $0010
 	add hl, de
-	jp .jmp_6CCB
+	jp .loop2
 
 .jmp_done_6DC1
 	ld hl, $DF1E
@@ -2221,12 +2221,12 @@ PlayMusic:: ; 6CBE
 	inc [hl]
 	ret
 
-.jmp_6DCE
+.skip13
 	ld b, $00
 	inc l
-    jr   .jmp_6D81  ; .after_hasWavRam
+    jr   .loop3  ; .after_hasWavRam
 
-.call_6DD3
+.loop4
 	ld a, b
 	srl a
 	ld l, a
@@ -2235,7 +2235,7 @@ PlayMusic:: ; 6CBE
 	ld e, [hl]
 	ret
 
-.jmp_6DDC
+.skip14
 	push hl
 	ld a, l
 	add a, $06
@@ -2247,18 +2247,18 @@ PlayMusic:: ; 6CBE
 	ldh a, [hCurrentChannel]
 	ld c, LOW(rNR13)  ; #MD: OK
 	cp a, $01				; square 1
-	jr z, .jmp_6DFE
+	jr z, .skip15
 	ld c, LOW(rNR23)  ; #MD: OK
 	cp a, $02				; square 2
-	jr z, .jmp_6DFE
+	jr z, .skip15
 	ld c, LOW(rNR33)  ; #MD: OK
 	cp a, $03				; wave
-	jr z, .jmp_6DFE
+	jr z, .skip15
 .jmp_done_6DFC
 	pop hl
 	ret
 
-.jmp_6DFE
+.skip15
 	inc l
 	ldi a, [hl]				; DFx9 freq lo
 	ld e, a
@@ -2271,37 +2271,37 @@ PlayMusic:: ; 6CBE
 	ld b, [hl]				; DFxE
 	ldh a, [$FFD1]
 	cp a, $01				; wut
-	jr .jmp_6E18			; huh?
+	jr .skip18			; huh?
 
-.jmp_6E0F
+.skip16
 	cp a, $03
-	jr .jmp_6E13			; huh?
+	jr .skip17			; huh?
 
-.jmp_6E13
+.skip17
 	ld hl, $FFFF
-	jr .jmp_6E34
+	jr .skip22
 
-.jmp_6E18
+.skip18
 	ld de, Data_6E3D
-	call .call_6DD3			; loads the value at DE + B/2 into E
+	call .loop4			; loads the value at DE + B/2 into E
 	bit 0, b				; if B is even
-	jr nz, .jmp_6E24
+	jr nz, .skip19
 	swap e					; select high nibble
-.jmp_6E24
+.skip19
 	ld a, e
 	and a, $0F				; lower nibble
 	bit 3, a
-	jr z, .jmp_6E31
+	jr z, .skip20
 	ld h, $FF
 	or a, $F0
-	jr .jmp_6E33
+	jr .skip21
 
-.jmp_6E31
+.skip20
 	ld h, $00
-.jmp_6E33
+.skip21
 	ld l, a
 
-.jmp_6E34
+.skip22
 	pop de
 	add hl, de
 	ld a, l

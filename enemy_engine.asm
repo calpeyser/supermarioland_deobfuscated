@@ -52,19 +52,19 @@ UpdateEnemies:: ; 2648
 	jr z, .runScript
 	ldh a, [hEnemyFlags]			; bit 1 set if gravity works on it?
 	bit 1, a
-	jr z, .jmp_2692
+	jr z, .skip2
 	call Call_2BBB			; check collision one tile down?
-	jr nc, .jmp_268C		; no carry means the tile is solid
+	jr nc, .skip		; no carry means the tile is solid
 	ldh a, [hEnemyY]			; Y pos
 	inc a					; fall down
 	ldh [hEnemyY], a
 	ret						; resume script when back on the ground
 
-.jmp_268C
+.skip
 	ldh a, [hEnemyY]
 	and a, $F8				; snap to tile grid
 	ldh [hEnemyY], a
-.jmp_2692
+.skip2
 	ldh a, [$FFC9]
 	and a, $F0
 	swap a
@@ -72,14 +72,14 @@ UpdateEnemies:: ; 2648
 	ldh a, [$FFC9]
 	and a, $0F
 	cp b
-	jr z, .jmp_26A7
+	jr z, .skip3
 	inc b
 	swap b
 	or b
 	ldh [$FFC9], a
 	ret
 
-.jmp_26A7
+.skip3
 	ldh a, [$FFC9]
 	and a, $0F
 	ldh [$FFC9], a
@@ -380,18 +380,18 @@ UpdateEnemies:: ; 2648
 .moveEnemy				; X movement first
 	ldh a, [hEnemySpeed]
 	and a, $0F			; X speed
-	jp z, .jmp_2975		; if zero, no point in doing collision detection
+	jp z, .skip9		; if zero, no point in doing collision detection
 	ldh a, [$FFC5]
 	bit 0, a			; going right
 	jr nz, .goingRight
 	call Call_2B84		; some sort of collision detection. left bound?
-	jr nc, .jmp_28CE
+	jr nc, .skip5
 	ldh a, [hEnemyFlags]
 	bit 0, a			; set if enemy doesn't walk off edges
-	jr z, .jmp_2896
+	jr z, .loop2
 	call Call_2BE4		; checks for collision bottom left bound, one tile down?
 	jr c, .reverseAndGoRight	; carry means the tile isn't solid
-.jmp_2896
+.loop2
 	ldh a, [hEnemySpeed]
 	and a, $0F
 	ld b, a
@@ -400,7 +400,7 @@ UpdateEnemies:: ; 2648
 	ldh [hEnemyX], a
 	ldh a, [hEnemyCarryingMario]
 	and a
-	jp z, .jmp_2975
+	jp z, .skip9
 	ld a, [wMarioFacing]		; dir mario is facing?
 	ld c, a
 	push bc
@@ -409,49 +409,49 @@ UpdateEnemies:: ; 2648
 	call Call_1AAD		; Mario side collision
 	pop bc
 	and a
-	jr nz, .jmp_28C7
+	jr nz, .skip4
 	ld a, [wMarioX]		; Y pos
 	sub b
 	ld [wMarioX], a
 	cp a, $0F
-	jr nc, .jmp_28C7
+	jr nc, .skip4
 	ld a, $0F
 	ld [wMarioX], a
-.jmp_28C7
+.skip4
 	ld a, c
 	ld [wMarioFacing], a
-	jp .jmp_2975
+	jp .skip9
 
-.jmp_28CE
+.skip5
 	ldh a, [hEnemyFlags]
 	and a, $0C			; test bits 2 and 3
 	cp a, 0
-	jr z, .jmp_2896		; bit 2 and 3 not set
+	jr z, .loop2		; bit 2 and 3 not set
 	cp a, $4
-	jr nz, .jmp_28E3
+	jr nz, .skip6
 .reverseAndGoRight		; bit 2 set, bit 3 unset
 	ldh a, [$FFC5]
 	set 0, a
 	ldh [$FFC5], a
-	jp .jmp_2975
+	jp .skip9
 
-.jmp_28E3
+.skip6
 	cp a, $0C
-	jp nz, .jmp_2975
+	jp nz, .skip9
 	xor a
 	ldh [hEnemyScriptIndex], a
 	ldh [$FFC8], a
-	jp .jmp_2975
+	jp .skip9
 
 .goingRight
 	call Call_2B9A		; bottom right collision
 	jr nc, .sideCollisionRight
 	ldh a, [hEnemyFlags]		; carry, so non-solid tile
 	bit 0, a			; bit 0: don't walk off edges?
-	jr z, .jmp_2900
+	jr z, .loop3
 	call Call_2BFE		; collision bottom right, one tile down
 	jr c, .reverseAndGoLeft		; jump if not solid
-.jmp_2900
+.loop3
 	ldh a, [hEnemySpeed]
 	and a, $0F			; X speed
 	ld b, a
@@ -460,7 +460,7 @@ UpdateEnemies:: ; 2648
 	ldh [hEnemyX], a
 	ldh a, [hEnemyCarryingMario]
 	and a
-	jr z, .jmp_2975
+	jr z, .skip9
 	ld a, [wMarioFacing]		; direction mario is facing
 	ld c, a
 	push bc
@@ -469,16 +469,16 @@ UpdateEnemies:: ; 2648
 	call Call_1AAD		; mario collision?
 	pop bc
 	and a
-	jr nz, .jmp_2944
+	jr nz, .loop5
 	ld a, [wMarioX]		; X pos
 	add b
 	ld [wMarioX], a
 	cp a, $51
-	jr c, .jmp_2944
+	jr c, .loop5
 	ld a, [wLevelEndCounter]
 	cp a, $07
-	jr nc, .jmp_294A
-.jmp_2931
+	jr nc, .skip7
+.loop4
 	ld a, [wMarioX]		; X pos
 	sub a, $50
 	ld b, a
@@ -488,49 +488,49 @@ UpdateEnemies:: ; 2648
 	add b
 	ldh [hScrollX], a
 	call Call_2C9F		; scroll enemies
-.jmp_2944
+.loop5
 	ld a, c
 	ld [wMarioFacing], a
-	jr .jmp_2975
+	jr .skip9
 
-.jmp_294A
+.skip7
 	ldh a, [hScrollX]
 	and a, $0C			; 0000 1100
-	jr nz, .jmp_2931
+	jr nz, .loop4
 	ldh a, [hScrollX]
 	and a, $FC			; 1111 1100
 	ldh [hScrollX], a
-	jr .jmp_2944
+	jr .loop5
 
 .sideCollisionRight
 	ldh a, [hEnemyFlags]
 	and a, $0C			; test bit 2 and 3
 	cp a, 0
-	jr z, .jmp_2900		; neither bit set
+	jr z, .loop3		; neither bit set
 	cp a, $4
-	jr nz, .jmp_296C
+	jr nz, .skip8
 .reverseAndGoLeft		; bit 2 set, bit 3 not set | at an edge
 	ldh a, [$FFC5]
 	res 0, a			; moving left | reverse direction
 	ldh [$FFC5], a
-	jr .jmp_2975
+	jr .skip9
 
-.jmp_296C				; bit 2 and 3 set
+.skip8				; bit 2 and 3 set
 	cp a, $0C
-	jr nz, .jmp_2975
+	jr nz, .skip9
 	xor a				; both bits set
 	ldh [hEnemyScriptIndex], a		; reset script
 	ldh [$FFC8], a
-.jmp_2975				; 
+.skip9				; 
 	ldh a, [hEnemySpeed]
 	and a, $F0
-	jp z, .jmp_29FD		; no Y speed, get out
+	jp z, .out2		; no Y speed, get out
 	ldh a, [$FFC5]
 	bit 1, a			; gravity
-	jr nz, .jmp_29C1
+	jr nz, .skip12
 	call Call_2C21		; upper left collision?
-	jr nc, .jmp_29A1
-.jmp_2987
+	jr nc, .skip10
+.loop6
 	ldh a, [hEnemySpeed]		; update Y position with Y speed
 	and a, $F0
 	swap a
@@ -540,36 +540,36 @@ UpdateEnemies:: ; 2648
 	ldh [hEnemyY], a
 	ldh a, [hEnemyCarryingMario]
 	and a
-	jr z, .jmp_29FD
+	jr z, .out2
 	ld a, [wMarioY]
 	sub b				; if carrying Mario, add the displacement to his Y coord
 	ld [wMarioY], a
-	jr .jmp_29FD
+	jr .out2
 
-.jmp_29A1
+.skip10
 	ldh a, [hEnemyFlags]
 	and a, $C0				; test bits 6 and 7
 	cp a, $00
-	jr z, .jmp_2987			; jump if neither set
+	jr z, .loop6			; jump if neither set
 	cp a, $40				; test bit 6
-	jp nz, .jmp_29B6		; could've been a JR, bug
+	jp nz, .skip11		; could've been a JR, bug
 	ldh a, [$FFC5]			; bit 6 set
 	set 1, a				; moving down
 	ldh [$FFC5], a
-	jr .jmp_29FD
+	jr .out2
 
-.jmp_29B6
+.skip11
 	cp a, $C0
-	jr nz, .jmp_29FD
+	jr nz, .out2
 	xor a
 	ldh [hEnemyScriptIndex], a
 	ldh [$FFC8], a
-	jr .jmp_29FD
+	jr .out2
 
-.jmp_29C1
+.skip12
 	call Call_2BBB		; collision one tile down
-	jr nc, .jmp_29E0
-.jmp_29C6
+	jr nc, .skip13
+.loop7
 	ldh a, [hEnemySpeed]
 	and a, $F0			; Y speed
 	swap a
@@ -579,31 +579,31 @@ UpdateEnemies:: ; 2648
 	ldh [hEnemyY], a
 	ldh a, [hEnemyCarryingMario]		; carrying Mario
 	and a
-	jr z, .jmp_29FD
+	jr z, .out2
 	ld a, [wMarioY]
 	add b				; if carrying, add to Mario's X position
 	ld [wMarioY], a
-	jr .jmp_29FD
+	jr .out2
 
-.jmp_29E0
+.skip13
 	ldh a, [hEnemyFlags]
 	and a, $30
 	cp a, $00
-	jr z, .jmp_29C6
+	jr z, .loop7
 	cp a, $10
-	jr nz, .jmp_29F4
+	jr nz, .skip14
 	ldh a, [$FFC5]
 	res 1, a			; moving up
 	ldh [$FFC5], a
-	jr .jmp_29FD
+	jr .out2
 
-.jmp_29F4
+.skip14
 	cp a, $30
-	jr nz, .jmp_29FD
+	jr nz, .out2
 	xor a
 	ldh [hEnemyScriptIndex], a		; reset script
 	ldh [$FFC8], a
-.jmp_29FD
+.out2
 	xor a
 	ldh [hEnemyCarryingMario], a
 	ret
@@ -716,7 +716,7 @@ Call_2A68:: ; 2A68
 	ld l, a
 	ld a, [hl]
 	and a, $3F		; health, like in 2AAD
-	jr z, .jmp_2A89
+	jr z, .skip
 	ld a, [hl]
 	dec a
 	ld [hl], a
@@ -726,16 +726,16 @@ Call_2A68:: ; 2A68
 	jr z, .bossHitSFX
 	cp a, KING_TOTOMESU
 	jr z, .bossHitSFX
-	jr .jmp_2A86
+	jr .out
 
 .bossHitSFX
 	ld a, $01
 	ld [wSfxRequestNoise], a	; creepy boss noise
-.jmp_2A86
+.out
 	ld a, $FE
 	ret
 
-.jmp_2A89
+.skip
 	pop hl
 	push hl
 	ld a, [hl]
@@ -776,7 +776,7 @@ Call_2AAD:: ; 2AAD
 	ld l, a
 	ld a, [hl]
 	and a, $3F		; only the lower 6 bits are health
-	jr z, .jmp_2AD9
+	jr z, .skip
 	ld a, [hl]
 	dec a
 	ld [hl], a
@@ -788,28 +788,28 @@ Call_2AAD:: ; 2AAD
 	jr z, .bossHitSFX
 	cp a, TATANGA
 	jr z, .explosionSFX
-	jr .jmp_2AD6
+	jr .out
 
 .explosionSFX
 	ld a, $01
 	ld [$DFF8], a	; explosion
-	jr .jmp_2AD6
+	jr .out
 
 .bossHitSFX
 	ld a, $01
 	ld [wSfxRequestNoise], a	; that weird scream bosses make when hit
-.jmp_2AD6
+.out
 	ld a, $FE		; not dead yet?
 	ret
 
-.jmp_2AD9
+.skip
 	pop hl
 	push hl
 	ld a, [hl]
 	cp a, $60		; tatanga
-	jr nz, .jmp_2AE3
+	jr nz, .skip2
 	ld [$D007], a
-.jmp_2AE3
+.skip2
 	ld a, [hl]
 	ld e, a
 	ld d, $00
@@ -927,14 +927,14 @@ Call_2B5D:: ; 2B5D
 	ld c, a
 	ldh a, [$FFC5]		; 1 if facing right
 	bit 0, a
-	jr .jmp_2B76
+	jr .out
 
 	ldh a, [hEnemyMortalityAndSize]
 	and a, $70			; width
 	rrca				; ...way more clever than the loop they usually use
 	add c				; add the width to the X coordinate
 	ldh [$FFAE], a
-.jmp_2B76
+.out
 	ldh a, [hEnemyY]
 	ldh [$FFAD], a
 	call LookupTile
@@ -1012,14 +1012,14 @@ Call_2BBB:: ; 2BBB
 	ld c, a
 	ldh a, [$FFC5]	; bit 0 on if facing right
 	bit 0, a
-	jr .jmp_2BD4	; bug maybe? Should have been jr nz?
+	jr .out	; bug maybe? Should have been jr nz?
 
 	ldh a, [hEnemyMortalityAndSize]	; mortality and dimensions?
 	and a, $70
 	rrca
 	add c
 	ldh [$FFAE], a
-.jmp_2BD4
+.out
 	ldh a, [hEnemyY]
 	add a, $08		; one tile lower
 	ldh [$FFAD], a
@@ -1104,14 +1104,14 @@ Call_2C21:: ; 2C21
 	ld c, a
 	ldh a, [$FFC5]
 	bit 0, a
-	jr .jmp_2C3A		; Should've been JR NZ?
+	jr .skip		; Should've been JR NZ?
 
 	ldh a, [hEnemyMortalityAndSize]
 	and a, $70			; 
 	rrca
 	add c
 	ldh [$FFAE], a
-.jmp_2C3A
+.skip
 	ldh a, [hEnemyMortalityAndSize]
 	and a, $07			; height
 	dec a

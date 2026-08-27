@@ -54,29 +54,29 @@ Call_4FB2:: ; 4FB2
 	ret nz
 	ld a, [wLevelEndCounter]
 	cp a, $07
-	jr c, .jmp_4FCB
+	jr c, .skip
 	ldh a, [hScrollX]
 	and a, $0C
-	jr nz, .jmp_4FCB
+	jr nz, .skip
 	ldh a, [hScrollX]
 	and a, $FC
 	ldh [hScrollX], a
 	ret
 
-.jmp_4FCB
+.skip
 	ldh a, [hScrollX]
 	inc a
 	ldh [hScrollX], a
 	ld b, $01
-	call Call_1D26.call_1EA4	; scroll sprites?
+	call Call_1D26.skip10	; scroll sprites?
 	call Call_2C9F				; scroll enemies?
 	ld hl, wMarioX				; X coord
 	dec [hl]
 	ld a, [hl]
 	and a
-	jr nz, .jmp_4FE2
+	jr nz, .out
 	ld [hl], $F0
-.jmp_4FE2
+.out
 	ld c, $08
 	call Call_50CC
 	ld hl, wMarioX
@@ -92,13 +92,13 @@ Call_4FB2:: ; 4FB2
 Call_4FEC:: ; 4FEC
 	ldh a, [hJoyHeld]
 	bit 6, a					; up button
-	jr nz, .jmp_5034
+	jr nz, .skip2
 	bit 7, a					; down button
-	jr nz, .jmp_5022
-.jmp_4FF6
+	jr nz, .skip
+.loop
 	ldh a, [hJoyHeld]
 	bit 4, a					; right button
-	jr nz, .jmp_5014
+	jr nz, .out
 	bit 5, a					; left button
 	ret z
 	ld c, $FA
@@ -114,7 +114,7 @@ Call_4FEC:: ; 4FEC
 	dec [hl]
 	ret
 
-.jmp_5014
+.out
 	ld c, $08
 	call Call_50CC
 	ld hl, wMarioX
@@ -124,36 +124,36 @@ Call_4FEC:: ; 4FEC
 	inc [hl]
 	ret
 
-.jmp_5022
+.skip
 	call Call_5089
 	cp a, $FF
-	jr z, .jmp_4FF6
+	jr z, .loop
 	ld hl, wMarioY				; Y coord
 	ld a, [hl]
 	cp a, $94					; ?
-	jr nc, .jmp_4FF6
+	jr nc, .loop
 	inc [hl]
-	jr .jmp_4FF6
+	jr .loop
 
-.jmp_5034
-	call .call_5046
+.skip2
+	call .skip3
 	cp a, $FF
-	jr z, .jmp_4FF6
+	jr z, .loop
 	ld hl, wMarioY
 	ld a, [hl]
 	cp a, $30
-	jr c, .jmp_4FF6
+	jr c, .loop
 	dec [hl]
-	jr .jmp_4FF6
+	jr .loop
 
-.call_5046
+.skip3
 	ld hl, wMarioY
 	ldh a, [hSuperStatus]
 	ld b, $FD
 	and a
-	jr z, .jmp_5052
+	jr z, .skip4
 	ld b, $FC
-.jmp_5052
+.skip4
 	ldi a, [hl]
 	add b
 	ldh [$FFAD], a
@@ -164,20 +164,20 @@ Call_4FEC:: ; 4FEC
 	ldh [$FFAE], a
 	call LookupTile
 	cp a, $60
-	jr nc, .jmp_5071
+	jr nc, .out2
 	ldh a, [$FFAE]
 	add a, $FA
 	ldh [$FFAE], a
 	call LookupTile
 	cp a, $60
 	ret c
-.jmp_5071
+.out2
 	cp a, $F4
-	jr z, .jmp_5078
+	jr z, .skip5
 	ld a, $FF
 	ret
 
-.jmp_5078
+.skip5
 	push hl
 	pop de
 	ld hl, $FFEE
@@ -209,7 +209,7 @@ Call_5089:: ; 5089
 	ldh [$FFAE], a
 	call LookupTile
 	cp a, $60
-	jr nc, .jmp_50B4
+	jr nc, .skip
 	ldh a, [$FFAE]
 	add a, $04
 	ldh [$FFAE], a
@@ -217,12 +217,12 @@ Call_5089:: ; 5089
 	cp a, $E1
 	jp z, Jmp_1B45			; end of level?
 	cp a, $60
-	jr nc, .jmp_50B4
+	jr nc, .skip
 	ret
 
-.jmp_50B4
+.skip
 	cp a, $F4
-	jr nz, .jmp_50C9
+	jr nz, .out
 	push hl
 	pop de
 	ld hl, $FFEE
@@ -235,7 +235,7 @@ Call_5089:: ; 5089
 	ld [$DFE0], a
 	ret
 
-.jmp_50C9
+.out
 	ld a, $FF
 	ret
 
@@ -249,9 +249,9 @@ Call_50CC:: ; 50CC
 	ld de, $0502
 	ldh a, [hSuperStatus]
 	cp a, $02
-	jr z, .jmp_50D8
+	jr z, .loop
 	ld de, $0501
-.jmp_50D8
+.loop
 	ld hl, wMarioY
 	ldi a, [hl]
 	add d
@@ -267,9 +267,9 @@ Call_50CC:: ; 50CC
 	call LookupTile
 	pop de
 	cp a, $60
-	jr c, .jmp_5101
+	jr c, .out
 	cp a, $F4			; coin?
-	jr z, .jmp_5107
+	jr z, .skip
 	cp a, $E1			; boss switch
 	jp z, Jmp_1B45
 	cp a, $83			; mushroom...
@@ -277,13 +277,13 @@ Call_50CC:: ; 50CC
 	pop hl
 	ret
 
-.jmp_5101
+.out
 	ld d, $FD
 	dec e
-	jr nz, .jmp_50D8
+	jr nz, .loop
 	ret
 
-.jmp_5107
+.skip
 	push hl
 	pop de
 	ld hl, $FFEE
@@ -310,8 +310,8 @@ CheckSuperballEnemyHit:: ; 5118
 .loop
 	ldi a, [hl]
 	and a
-	jr nz, .jmp_512C
-.jmp_5124
+	jr nz, .skip
+.loop2
 	inc e
 	inc e
 	inc e
@@ -320,7 +320,7 @@ CheckSuperballEnemyHit:: ; 5118
 	jr nz, .loop
 	ret
 
-.jmp_512C
+.skip
 	push hl
 	push de
 	push bc
@@ -332,15 +332,15 @@ CheckSuperballEnemyHit:: ; 5118
 	ldh [hHitboxBottom], a
 	ldh [hEnemyX], a			; isn't this for enemies?
 	cp a, $A9
-	jr c, .jmp_5143
-.jmp_513C
+	jr c, .skip2
+.loop3
 	xor a
 	res 0, e
 	ld [de], a
 	ld [hl], a
-	jr .jmp_5156
+	jr .skip3
 
-.jmp_5143
+.skip2
 	add a, $02
 	push af
 	dec e
@@ -350,23 +350,23 @@ CheckSuperballEnemyHit:: ; 5118
 	ldh [$FFAD], a
 	pop af
 	call FindNeighboringTile
-	jr c, .jmp_5156
-	jr .jmp_513C
+	jr c, .skip3
+	jr .loop3
 
-.jmp_5156
+.skip3
 	pop bc
 	pop de
 	pop hl
 	call Call_200A			; collision with enemy
-	jr .jmp_5124
+	jr .loop2
 
-.jmp_515E
+.out
 	ld a, [wMarioX]
 	cp a, $01
-	jr c, .jmp_5168
+	jr c, .skip4
 	cp a, $ED
 	ret c
-.jmp_5168
+.skip4
 	xor a
 	ldh [hSuperStatus], a
 	ldh [hSuperballMario], a

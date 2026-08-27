@@ -476,10 +476,10 @@ _GameState_14:: ; 5A72
 	ld d, a
 	ldh a, [hSuperStatus]
 	cp a, $02
-	jr nz, .jmp_5A93
+	jr nz, .skip
 	ld a, $20
 	ld d, a
-.jmp_5A93
+.skip
 	ld a, d
 	ldi [hl], a		; tile number
 	inc l			; no attributes
@@ -524,11 +524,11 @@ _GameState_14:: ; 5A72
 _GameState_15:: ; 5ABB
 	ld a, [wLadderStatus]	; ladder status?
 	bit 0, a
-	jr z, .jmp_5AC9
+	jr z, .out
 	ldh a, [hJoyHeld]
 	bit 0, a		; A button todo
-	jp nz, .jmp_5B56
-.jmp_5AC9
+	jp nz, .skip5
+.out
 	ld hl, wBonusGameFrameCounter
 	ld a, [hl]
 	inc a
@@ -539,12 +539,12 @@ _GameState_15:: ; 5ABB
 	ld [hl], a
 	ld a, [wLadderStatus]
 	bit 0, a
-	jr z, .jmp_5B07
+	jr z, .skip2
 	ld hl, wOAMBuffer + 4*$C
 	ld b, $04
 	ld a, [hl]		; Y pos
 	cp a, $80		; bottom floor
-	jr z, .jmp_5AF1
+	jr z, .skip
 .loop1
 	ld a, $18
 	add [hl]		; down 3 tiles
@@ -554,9 +554,9 @@ _GameState_15:: ; 5ABB
 	inc l
 	dec b
 	jr nz, .loop1
-	jr .jmp_5B07
+	jr .skip2
 
-.jmp_5AF1
+.skip
 	ld b, $02		; 2 bottom objects
 	ld a, $38		; top floor
 .loop2
@@ -575,7 +575,7 @@ _GameState_15:: ; 5ABB
 	inc l
 	dec b
 	jr nz, .loop3
-.jmp_5B07
+.skip2
 	ld hl, $98EA	; ladder top floor position
 	ld bc, $0060	; 3 screen widths
 	ld de, wLadderStatus
@@ -583,18 +583,18 @@ _GameState_15:: ; 5ABB
 	inc a
 	ld [de], a
 	cp a, $03
-	jr c, .jmp_5B27
+	jr c, .skip3
 	add hl, bc
 	cp a, $05
-	jr c, .jmp_5B27
+	jr c, .skip3
 	add hl, bc
 	cp a, $07
-	jr c, .jmp_5B27
+	jr c, .skip3
 	ld hl, $98EA
 	xor a
 	inc a
 	ld [de], a
-.jmp_5B27
+.skip3
 	ld a, h
 	ld [wLadderLocationHi], a
 	ld a, l
@@ -602,7 +602,7 @@ _GameState_15:: ; 5ABB
 	ld hl, wLadderTiles
 	ld a, [de]
 	bit 0, a
-	jr z, .jmp_5B45
+	jr z, .skip4
 	ld a, $2E
 	ldi [hl], a
 	ld a, $2F
@@ -611,9 +611,9 @@ _GameState_15:: ; 5ABB
 	ldi [hl], a
 	ld a, $30
 	ld [hl], a
-	jr .jmp_5B51
+	jr .out2
 
-.jmp_5B45
+.skip4
 	ld a, $2D
 	ldi [hl], a
 	ld a, $2C
@@ -622,12 +622,12 @@ _GameState_15:: ; 5ABB
 	ldi [hl], a
 	ld a, $2D
 	ld [hl], a
-.jmp_5B51
+.out2
 	ld a, GAMESTATE_DRAW_LADDER
 	ldh [hGameState], a
 	ret
 
-.jmp_5B56
+.skip5
 	xor a
 	ld [$DA22], a
 	ld [wLadderStatus], a
@@ -647,12 +647,12 @@ _GameState_17:: ; 5B65
 	ld hl, $DA1C			; 1 if walking
 	ld a, [hl]
 	and a
-	jr nz, .jmp_5B73
+	jr nz, .skip
 	inc [hl]				; start walking
 	ld hl, $DFE8
 	ld a, $0A				; walking music
 	ld [hl], a
-.jmp_5B73
+.skip
 	ld hl, wOAMBuffer + 4*$C + 1	; X pos
 	ld de, $5C9D			; todo
 	ld b, $04
@@ -894,7 +894,7 @@ Data_5C9D:: ; FC9D
 _GameState_1A:: ; 5CDE
 	ld a, [$DA17]
 	and a
-	jp nz, .jmp_5D69
+	jp nz, .skip
 	ld c, 2
 .erasePrizes
 	ld hl, $98D1			; the * of the top prize
@@ -982,12 +982,12 @@ _GameState_1A:: ; 5CDE
 	ld [$DA17], a
 	jr .playWinSound
 
-.jmp_5D69
+.skip
 	ld a, [$DA17]
 	cp a, $10			; grow into superball mario
-	jr nc, .jmp_5DA0
+	jr nc, .out
 	cp a, $02			; add lives
-	jp nc, .jmp_5E02
+	jp nc, .out3
 	ld a, [wBonusGameEndTimer]
 	dec a
 	ld [wBonusGameEndTimer], a
@@ -1008,7 +1008,7 @@ _GameState_1A:: ; 5CDE
 	ldh [hGameState], a		; Leave bonus game
 	ret
 
-.jmp_5DA0
+.out
 	ld a, [wBonusGameAnimationTimer]
 	dec a
 	ld [wBonusGameAnimationTimer], a
@@ -1019,7 +1019,7 @@ _GameState_1A:: ; 5CDE
 	inc a
 	ld [$DA17], a
 	cp a, $28
-	jr z, .jmp_5DF7
+	jr z, .out2
 	ld a, [$DA1C]
 	and a
 	jr nz, .powerupAnimation
@@ -1030,7 +1030,7 @@ _GameState_1A:: ; 5CDE
 	ld [hl], a
 	ldh a, [hSuperStatus]
 	cp a, $02
-	jr z, .jmp_5DF7
+	jr z, .out2
 .powerupAnimation
 	ld hl, wOAMBuffer + 4*$C + 2	; tile number
 	ld b, $04				; 4 objects
@@ -1064,7 +1064,7 @@ _GameState_1A:: ; 5CDE
 	jr nz, .smallLoop
 	ret
 
-.jmp_5DF7
+.out2
 	ld a, $01
 	ld [$DA17], a
 	inc a
@@ -1072,7 +1072,7 @@ _GameState_1A:: ; 5CDE
 	ldh [hSuperballMario], a
 	ret
 
-.jmp_5E02
+.out3
 	ld a, [wBonusGameAnimationTimer]
 	dec a
 	ld [wBonusGameAnimationTimer], a
@@ -1081,7 +1081,7 @@ _GameState_1A:: ; 5CDE
 	ld [wBonusGameAnimationTimer], a
 	ld a, [$DA20]
 	and a
-	jr nz, .jmp_5E3F
+	jr nz, .skip2
 	ld hl, wOAMBuffer + 4*$C
 	ld a, $38
 	ld b, a
@@ -1116,13 +1116,13 @@ _GameState_1A:: ; 5CDE
 	ld [$DA20], a
 	ret
 
-.jmp_5E3F
+.skip2
 	ld hl, wOAMBuffer + 4*$C
 	ld a, [$DA21]
 	cp a, $02
-	jp z, .jmp_5EDA
+	jp z, .skip5
 	and a
-	jr nz, .jmp_5EB2
+	jr nz, .skip4
 	ld a, [hl]
 	dec a
 	ldi [hl], a
@@ -1131,11 +1131,11 @@ _GameState_1A:: ; 5CDE
 	ld b, a
 	ldh a, [hSuperStatus]
 	cp a, $02
-	jr nz, .jmp_5E5E
+	jr nz, .skip3
 	ld a, b
 	add a, $20
 	ld b, a
-.jmp_5E5E
+.skip3
 	ld a, b
 	ldi [hl], a
 	inc l
@@ -1174,7 +1174,7 @@ _GameState_1A:: ; 5CDE
 	ld a, [wLives]
 	and a
 	cp a, $99
-	jr nc, .jmp_5EA9
+	jr nc, .out4
 	add a, 1
 	daa
 	ld [wLives], a
@@ -1188,13 +1188,13 @@ _GameState_1A:: ; 5CDE
 	and a, $F0
 	swap a
 	ld [de], a
-.jmp_5EA9
+.out4
 	ld a, $01
 	ld [$DA20], a
 	ld [$DA21], a
 	ret
 
-.jmp_5EB2
+.skip4
 	ld a, [hl]
 	inc a
 	ldi [hl], a
@@ -1226,7 +1226,7 @@ _GameState_1A:: ; 5CDE
 	ld [$DA21], a
 	ret
 
-.jmp_5EDA
+.skip5
 	ld a, [hl]
 	inc a
 	ldi [hl], a
@@ -1235,11 +1235,11 @@ _GameState_1A:: ; 5CDE
 	ld b, a
 	ldh a, [hSuperStatus]
 	cp a, $02
-	jr nz, .jmp_5EEA
+	jr nz, .skip6
 	ld a, b
 	add a, $20
 	ld b, a
-.jmp_5EEA
+.skip6
 	ld a, b
 	ldi [hl], a
 	inc l
