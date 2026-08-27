@@ -490,77 +490,77 @@ Init::	; 0185
 	ldh a, [hGameState]
 	rst $28		; Jump Table
 	; 2A6
-dw $0627 ; 0x00   Normal gameplay
-dw $06BC ; 0x01 ✓ Dead?
-dw $06DC ; 0x02 ✓ Reset to checkpoint
-dw $0B8D ; 0x03 ✓ Pre dying
-dw $0BD6 ; 0x04 ✓ Dying animation
-dw $0C73 ; 0x05 ✓ Explosion/Score counting down
-dw $0CCB ; 0x06 ✓ End of level
-dw $0C40 ; 0x07 ✓ End of level gate, music
+	dw GameState_00_Gameplay                           ; 0x00 Normal gameplay
+	dw GameState_01_Dead                                    ; 0x01 ✓ Dead?
+	dw GameState_02_ResetToCheckpoint                                    ; 0x02 ✓ Reset to checkpoint
+	dw GameState_03_PrepareDeath                       ; 0x03 ✓ Pre dying
+	dw GameState_04_DeathAnimation                     ; 0x04 ✓ Dying animation
+	dw GameState_05_LevelClearScoring                  ; 0x05 ✓ Explosion/Score counting down
+	dw GameState_06_LevelWon                           ; 0x06 ✓ End of level
+	dw GameState_07_LevelEndGate                       ; 0x07 ✓ End of level gate, music
 dw $0D49 ; 0x08 ✓ Increment Level, load tiles
-dw $161B ; 0x09 ✓ Going down a pipe
-dw $162F ; 0x0A ✓ Warping to underground?
-dw $166C ; 0x0B ✓ Going right in a pipe
-dw $16DA ; 0x0C ✓ Going up out of a pipe
-dw $2376 ; 0x0D   Auto scrolling level
-dw $0322 ; 0x0E ✓ Init menu
+	dw GameState_09_EnterPipe                          ; 0x09 ✓ Going down a pipe
+	dw GameState_0A_WarpUnderground                    ; 0x0A ✓ Warping to underground?
+	dw GameState_0B_EnterPipeFromUnderground           ; 0x0B ✓ Going right in a pipe
+	dw GameState_0C_EmergeFromPipe                     ; 0x0C ✓ Going up out of a pipe
+	dw GameState_0D_AutoScrollLevel                                    ; 0x0D Auto scrolling level
+	dw GameState_0E_InitMenu                                    ; 0x0E ✓ Init menu
 dw $04C3 ; 0x0F ✓ Start menu
-dw $05CE ; 0x10 ✓ Unused? todo
-dw $0576 ; 0x11 ✓ Level start
-dw $3D97 ; 0x12 ✓ Go to Bonus game
-dw $3DD7 ; 0x13 ✓ Entering Bonus game
-dw $5832 ; 0x14 ✓ Setup Mario sprite
-dw $5835 ; 0x15 ✓ Bonus game
-dw $3EA7 ; 0x16 ✓ Move the ladder
-dw $5838 ; 0x17 ✓ Bonus game walking
-dw $583B ; 0x18 ✓ Bonus game descending ladder
-dw $583E ; 0x19 ✓ Bonus game ascending ladder
-dw $5841 ; 0x1A ✓ Getting price
-dw $0DF9 ; 0x1B ✓ Leaving Bonus game
-dw $0E15 ; 0x1C ✓ Smth with the gate after a boss
-dw $0E31 ; 0x1D ✓
-dw $0E5D ; 0x1E ✓ Gate opening
-dw $0E96 ; 0x1F ✓ Gate open
-dw $0EA9 ; 0x20 ✓ Walk off button
-dw $0ECD ; 0x21 ✓ Mario offscreen
-dw $0F12 ; 0x22 ✓ Scroll to fake Daisy
-dw $0F33 ; 0x23 ✓ Walk to fake Daisy
-dw $0F6A ; 0x24 ✓ Fake Daisy speak
-dw $0FFD ; 0x25 ✓ Fake Daisy morphing
-dw $1055 ; 0x26 ✓ Fake Daisy monster jumping away
-dw $1099 ; 0x27 ✓ Tatanga dying
-dw $0EA9 ; 0x28 ✓ Tatanga dead, plane moves forward
-dw $1116 ; 0x29 ✓ 
-dw $1165 ; 0x2A ✓ Daisy speaking
-dw $1194 ; 0x2B ✓ Daisy moving
-dw $11D0 ; 0x2C ✓ Daisy kissing
-dw $121B ; 0x2D ✓ Daisy quest over
-dw $1254 ; 0x2E ✓ Mario credits running
-dw $12A1 ; 0x2F ✓ Entering airplane
-dw $12C2 ; 0x30 ✓ Airplane taking off
-dw $12F1 ; 0x31 ✓ Airplane moving forward
-dw $138E ; 0x32 ✓ Airplane leaving hanger?
+	dw GameState_10                                    ; 0x10 ✓ Unused? todo
+	dw GameState_11_LevelStart                                    ; 0x11 ✓ Level start
+	dw GameState_12_EnterBonusGame                     ; 0x12 ✓ Go to Bonus game
+	dw GameState_13_EnteringBonusGame                                    ; 0x13 ✓ Entering Bonus game
+	dw GameState_14                                    ; 0x14 ✓ Setup Mario sprite
+	dw GameState_15                                    ; 0x15 ✓ Bonus game
+	dw GameState_16_DrawLadder                         ; 0x16 ✓ Move the ladder
+	dw GameState_17                                    ; 0x17 ✓ Bonus game walking
+	dw GameState_18                                    ; 0x18 ✓ Bonus game descending ladder
+	dw GameState_19                                    ; 0x19 ✓ Bonus game ascending ladder
+	dw GameState_1A                                    ; 0x1A ✓ Getting price
+	dw GameState_1B_LeaveBonusGame                     ; 0x1B ✓ Leaving Bonus game
+	dw GameState_1C                                    ; 0x1C ✓ Smth with the gate after a boss
+	dw GameState_1D                                    ; 0x1D ✓
+	dw GameState_1E_OpenGate                           ; 0x1E ✓ Gate opening
+	dw GameState_1F_GateOpen                           ; 0x1F ✓ Gate open
+	dw GameState_20_WalkOffButton                                    ; 0x20 ✓ Walk off button
+	dw GameState_21_PrepareFakeDaisy                   ; 0x21 ✓ Mario offscreen
+	dw GameState_22_ScrollScreen                       ; 0x22 ✓ Scroll to fake Daisy
+	dw GameState_23_WalkToFakeDaisy                                    ; 0x23 ✓ Walk to fake Daisy
+	dw GameState_24_FakeDaisySpeaking                  ; 0x24 ✓ Fake Daisy speak
+	dw GameState_25_FakeDaisyMorphing                  ; 0x25 ✓ Fake Daisy morphing
+	dw GameState_26_FakeDaisyEscaping                  ; 0x26 ✓ Fake Daisy monster jumping away
+	dw GameState_27_RemoveBlocks                       ; 0x27 ✓ Tatanga dying
+	dw GameState_28_MarioExitsScreen                                    ; 0x28 ✓ Tatanga dead, plane moves forward
+	dw GameState_29                                    ; 0x29 ✓
+	dw GameState_2A_DaisySpeaking                                    ; 0x2A ✓ Daisy speaking
+	dw GameState_2B_DaisyApproaching                   ; 0x2B ✓ Daisy moving
+	dw GameState_2C_DaisyKiss                          ; 0x2C ✓ Daisy kissing
+	dw GameState_2D_QuestOver                          ; 0x2D ✓ Daisy quest over
+	dw GameState_2E_MarioAndDaisyWalking               ; 0x2E ✓ Mario credits running
+	dw GameState_2F_PrepareLiftoff                     ; 0x2F ✓ Entering airplane
+	dw GameState_30_AirplaneTakingOff                                    ; 0x30 ✓ Airplane taking off
+	dw GameState_31_AirplaneMovingForward                                    ; 0x31 ✓ Airplane moving forward
+	dw GameState_32_AirplaneLeavingHangar                                    ; 0x32 ✓ Airplane leaving hanger?
 dw $13F0 ; 0x33 ✓ In between two credits?
-dw $1441 ; 0x34 ✓ Credits coming up
-dw $145A ; 0x35 ✓ Credits stand still
-dw $1466 ; 0x36 ✓ Credits leave
-dw $1488 ; 0x37 ✓ Airplane leaving
-dw $14DC ; 0x38 ✓ THE END letters flying
-dw $1C7C ; 0x39 ✓ Pre game over?
-dw $1CE8 ; 0x3A ✓ Game over
-dw $1CF0 ; 0x3B ✓ Pre time up
-dw $1D1D ; 0x3C ✓ Time up
+	dw GameState_34_CreditsEnter                       ; 0x34 ✓ Credits coming up
+	dw GameState_35_CreditsStandStill                                    ; 0x35 ✓ Credits stand still
+	dw GameState_36_CreditsScrollOut                   ; 0x36 ✓ Credits leave
+	dw GameState_37_SpaceshipDeparts                   ; 0x37 ✓ Airplane leaving
+	dw GameState_38_TheEndLettersFlying                                    ; 0x38 ✓ THE END letters flying
+	dw GameState_39_PreGameOver                                    ; 0x39 ✓ Pre game over?
+	dw GameState_3A_GameOver                           ; 0x3A ✓ Game over
+	dw GameState_3B_PrepareTimeUp                      ; 0x3B ✓ Pre time up
+	dw GameState_3C_TimeUp                             ; 0x3C ✓ Time up
 dw $06BB ; 0x3D  
 
 ;322
 ;@ --------------------------------------------------------------------
-;@ GameState_0E   [00:0322]   160 lines
+;@ GameState_0E_InitMenu   [00:0322]   160 lines
 ;@   reads     : hLevelIndex, hWinCount, wNumContinues, wWinCount
 ;@   writes    : hGameState, hInMenuOrDemo, hLevelIndex, hScreenIndex, hScrollX, hSuperStatus, hUnderground, hWinCount
 ;@   calls     : Call_5CF, CopyData, DisplayScore, FillStartMenuTopRow, UpdateLevelColumns
 ;@ --------------------------------------------------------------------
-GameState_0E::
+GameState_0E_InitMenu::
 	xor a
 	ldh [rLCDC], a	; Turn off LCD
 	di
@@ -913,12 +913,12 @@ FillStartMenuTopRow: ; 56F
 	ret
 
 ;@ --------------------------------------------------------------------
-;@ GameState_11   [00:0576]   47 lines
+;@ GameState_11_LevelStart   [00:0576]   47 lines
 ;@   reads     : hInMenuOrDemo, hWorldAndLevel
 ;@   writes    : hCoins, hNextColumnToLoad, hScoreLeadingZero, rIF, rLCDC, rLYC, rTAC, rTMA
 ;@   calls     : Call_5CF, Call_5E7, DisplayCoins, GameState_08, InitLevel, PrepareHUD, UpdateBonusGameTimer, UpdateLives
 ;@ --------------------------------------------------------------------
-GameState_11::	; 576
+GameState_11_LevelStart::	; 576
 ; start level
 .entryPoint::
 	xor a
@@ -998,7 +998,7 @@ CopyData::	; 05DE
 ; prepare tiles
 ;@ --------------------------------------------------------------------
 ;@ Call_5E7   [00:05E7]   21 lines
-;@   called by : GameState_08, GameState_11
+;@   called by : GameState_08, GameState_11_LevelStart
 ;@   calls     : CopyData
 ;@ --------------------------------------------------------------------
 Call_5E7::	; the three upper banks have tiles at the same location?
@@ -1110,10 +1110,10 @@ GameState_00_Gameplay::	; 627
 
 ; 06BC
 ;@ --------------------------------------------------------------------
-;@ GameState_01   [00:06BC]   21 lines
+;@ GameState_01_Dead   [00:06BC]   21 lines
 ;@   writes    : hGameState, hSuperStatus, wLivesEarnedLost
 ;@ --------------------------------------------------------------------
-GameState_01::
+GameState_01_Dead::
 	ld hl, hTimer
 	ld a, [hl]
 	and a
@@ -1135,12 +1135,12 @@ GameState_01::
 	ret
 
 ;@ --------------------------------------------------------------------
-;@ GameState_02   [00:06DC]   109 lines
+;@ GameState_02_ResetToCheckpoint   [00:06DC]   109 lines
 ;@   reads     : hLevelIndex, hPipeExitScreen, hUnderground, hWorldAndLevel, wMarioAnimationIndex
 ;@   writes    : hGameState, hNextColumnToLoad, hScrollX, hUnderground, rIF, rLCDC, rTMA, wGameTimer
 ;@   calls     : Call_165E, Call_1ED4, InitEnemySlots, StartLevelMusic, UpdateLevelColumns
 ;@ --------------------------------------------------------------------
-GameState_02::
+GameState_02_ResetToCheckpoint::
 	di
 	ld a, 0
 	ldh [rLCDC], a
@@ -1251,7 +1251,7 @@ GameState_02::
 
 ;@ --------------------------------------------------------------------
 ;@ StartLevelMusic   [00:07A3]   32 lines
-;@   called by : GameState_02, GameState_0B_EnterPipeFromUnderground, UpdateInvincibility
+;@   called by : GameState_02_ResetToCheckpoint, GameState_0B_EnterPipeFromUnderground, UpdateInvincibility
 ;@   reads     : hActiveRomBank, hLevelIndex, wInvincibilityTimer
 ;@   writes    : rROMB0
 ;@   calls     : InitSound
@@ -1328,7 +1328,7 @@ pauseOrReset:: ; 7DA
 ; this draw the first screen of the level. The rest is dynamically loaded
 ;@ --------------------------------------------------------------------
 ;@ UpdateLevelColumns   [00:0807]   46 lines
-;@   called by : GameState_02, GameState_0A_WarpUnderground, GameState_0B_EnterPipeFromUnderground, GameState_0E, GameState_29
+;@   called by : GameState_02_ResetToCheckpoint, GameState_0A_WarpUnderground, GameState_0B_EnterPipeFromUnderground, GameState_0E_InitMenu, GameState_29
 ;@   reads     : hGameState, hLevelIndex, hSuperStatus
 ;@   writes    : hNextColumnToLoad, hScrollColumnPhase, wMarioAnimationIndex
 ;@   calls     : DrawColumn, LoadNextColumn
@@ -1381,7 +1381,7 @@ UpdateLevelColumns::
 ; player "entity" (enemy, powerup) collision
 ;@ --------------------------------------------------------------------
 ;@ CheckMarioEnemyCollision   [00:084E]   254 lines
-;@   called by : GameState_00_Gameplay, GameState_0D
+;@   called by : GameState_00_Gameplay, GameState_0D_AutoScrollLevel
 ;@   reads     : hFloatyControl, hGameState, hStompChain, hStompChainTimer, hSuperStatus, wInvincibilityTimer, wMarioAnimationIndex, wMarioX
 ;@   writes    : hFloatyControl, hFloatyX, hFloatyY, hHitboxBottom, hHitboxLeft, hHitboxRight, hHitboxTop, hStompChain
 ;@   calls     : Call_2A01, Call_2A44, Call_2B06, Call_A10, ComputeHitbox, InjureMario, KillMario
@@ -2252,7 +2252,7 @@ GameState_06_LevelWon:: ; CCB
 
 ;@ --------------------------------------------------------------------
 ;@ GameState_08   [00:0D39]   130 lines
-;@   called by : GameState_11
+;@   called by : GameState_11_LevelStart
 ;@   reads     : hLevelIndex, hWorldAndLevel, wCurrentlyPlayingSound
 ;@   writes    : hActiveRomBank, hGameState, hLevelIndex, hScreenIndex, hUnderground, hWorldAndLevel, rIF, rLCDC
 ;@   calls     : Call_5E7, InitLevel
@@ -2530,13 +2530,13 @@ GameState_1F_GateOpen:: ; E96
 ; Mario walks/flies off screen
 GameState_28_MarioExitsScreen::
 ;@ --------------------------------------------------------------------
-;@ GameState_20   [00:0EA9]   22 lines
+;@ GameState_20_WalkOffButton   [00:0EA9]   22 lines
 ;@   called by : GameState_2E_MarioAndDaisyWalking
 ;@   reads     : wMarioAnimationIndex, wMarioX
 ;@   writes    : hJoyHeld, hTimer
 ;@   calls     : AnimateMario, CheckMarioTileCollision
 ;@ --------------------------------------------------------------------
-GameState_20:: ; EA9
+GameState_20_WalkOffButton:: ; EA9
 	call .walkRight
 	ld a, [wMarioX]		; mario on screen X
 	cp a, $C0
@@ -2613,7 +2613,7 @@ GameState_21_PrepareFakeDaisy:: ; ECD
 ; scroll the screen
 ;@ --------------------------------------------------------------------
 ;@ GameState_22_ScrollScreen   [00:0F12]   22 lines
-;@   called by : GameState_23
+;@   called by : GameState_23_WalkToFakeDaisy
 ;@   reads     : hTimer
 ;@   writes    : hLevelIndex
 ;@   calls     : Call_1736, UpdateScrollProgress
@@ -2641,12 +2641,12 @@ GameState_22_ScrollScreen:: ; F12
 	ret
 
 ;@ --------------------------------------------------------------------
-;@ GameState_23   [00:0F33]   31 lines
+;@ GameState_23_WalkToFakeDaisy   [00:0F33]   31 lines
 ;@   reads     : wMarioAnimationIndex, wMarioX
 ;@   writes    : hJoyHeld, hTextCursorHi, hTextCursorLo, wMarioAnimationIndex
 ;@   calls     : AnimateMario, CheckMarioTileCollision, GameState_22_ScrollScreen
 ;@ --------------------------------------------------------------------
-GameState_23:: ; F33
+GameState_23_WalkToFakeDaisy:: ; F33
 	ld a, $10			; right button
 	ldh [hJoyHeld], a
 	call CheckMarioTileCollision
@@ -2701,7 +2701,7 @@ GameState_24_FakeDaisySpeaking:: ; F6A
 
 ;@ --------------------------------------------------------------------
 ;@ PrintVictoryMessage   [00:0F8A]   62 lines
-;@   called by : GameState_24_FakeDaisySpeaking, GameState_2A, GameState_2B_DaisyApproaching, GameState_2D_QuestOver
+;@   called by : GameState_24_FakeDaisySpeaking, GameState_2A_DaisySpeaking, GameState_2B_DaisyApproaching, GameState_2D_QuestOver
 ;@   reads     : hTextCursorHi, hTextCursorLo, hTimer
 ;@   writes    : hTextCursorHi, hTextCursorLo, hTimer
 ;@ --------------------------------------------------------------------
@@ -3005,11 +3005,11 @@ GameState_29:: ; 1116
 	ret
 
 ;@ --------------------------------------------------------------------
-;@ GameState_2A   [00:1165]   21 lines
+;@ GameState_2A_DaisySpeaking   [00:1165]   21 lines
 ;@   writes    : hTextCursorHi, hTextCursorLo
 ;@   calls     : PrintVictoryMessage
 ;@ --------------------------------------------------------------------
-GameState_2A:: ; 1165
+GameState_2A_DaisySpeaking:: ; 1165
 	ld hl, .text_1183
 	call PrintVictoryMessage
 	cp a, $FF
@@ -3154,7 +3154,7 @@ GameState_2D_QuestOver:: ; 121B
 ;@ GameState_2E_MarioAndDaisyWalking   [00:1254]   49 lines
 ;@   reads     : hColumnIndex, hFrameCounter, hScreenIndex
 ;@   writes    : hTimer, wMarioVisible
-;@   calls     : GameState_20, UpdateScrollProgress
+;@   calls     : GameState_20_WalkOffButton, UpdateScrollProgress
 ;@ --------------------------------------------------------------------
 GameState_2E_MarioAndDaisyWalking::
 	ldh a, [hFrameCounter]
@@ -3189,7 +3189,7 @@ GameState_2E_MarioAndDaisyWalking::
 	ld hl, hGameState
 	inc [hl]			; 2E → 2F
 .walkMarioDaisy
-	call GameState_20.walkRight
+	call GameState_20_WalkOffButton.walkRight
 	call UpdateScrollProgress		; level rendering
 	ldh a, [hScreenIndex]
 	cp a, $03
@@ -3231,12 +3231,12 @@ GameState_2F_PrepareLiftoff:: ; 12A1
 	ret
 
 ;@ --------------------------------------------------------------------
-;@ GameState_30   [00:12C2]   33 lines
-;@   called by : GameState_31
+;@ GameState_30_AirplaneTakingOff   [00:12C2]   33 lines
+;@   called by : GameState_31_AirplaneMovingForward
 ;@   reads     : hFrameCounter
 ;@   calls     : Call_1736
 ;@ --------------------------------------------------------------------
-GameState_30:: ; 12C2
+GameState_30_AirplaneTakingOff:: ; 12C2
 	call Call_1736		; animate "Mario" (spaceship)
 	ldh a, [hFrameCounter]
 	ld b, a
@@ -3270,13 +3270,13 @@ GameState_30:: ; 12C2
 	ret
 
 ;@ --------------------------------------------------------------------
-;@ GameState_31   [00:12F1]   91 lines
-;@   called by : AnimateSpaceshipAndClouds, GameState_32
+;@ GameState_31_AirplaneMovingForward   [00:12F1]   91 lines
+;@   called by : AnimateSpaceshipAndClouds, GameState_32_AirplaneLeavingHangar
 ;@   reads     : hNextColumnToLoad, hScrollX, wCurrentSong
 ;@   writes    : hColumnLoadRequest, hNextColumnToLoad, hScrollX, rLYC
-;@   calls     : Call_1736, GameState_30, UpdateScrollProgress
+;@   calls     : Call_1736, GameState_30_AirplaneTakingOff, UpdateScrollProgress
 ;@ --------------------------------------------------------------------
-GameState_31:: ; 12F1
+GameState_31_AirplaneMovingForward:: ; 12F1
 	call .animateSpaceship
 	call UpdateScrollProgress		; loads level
 	ldh a, [hScrollX]
@@ -3294,7 +3294,7 @@ GameState_31:: ; 12F1
 
 .animateSpaceship
 	ld hl, wMarioX		; X pos
-	call GameState_30.switchSpaceshipAnimation
+	call GameState_30_AirplaneTakingOff.switchSpaceshipAnimation
 	call Call_1736		; animate entities
 	ret
 
@@ -3368,12 +3368,12 @@ GameState_31:: ; 12F1
 	db $80, $40, $70, $29, $80
 
 ;@ --------------------------------------------------------------------
-;@ GameState_32   [00:138E]   34 lines
+;@ GameState_32_AirplaneLeavingHangar   [00:138E]   34 lines
 ;@   reads     : hScrollColumnPhase, hScrollX
 ;@   writes    : hScrollColumnPhase, hScrollX, hTextCursorHi, hTextCursorLo, hTimer, rLYC
-;@   calls     : AnimateSpaceshipAndClouds, GameState_31
+;@   calls     : AnimateSpaceshipAndClouds, GameState_31_AirplaneMovingForward
 ;@ --------------------------------------------------------------------
-GameState_32:: ; 138E
+GameState_32_AirplaneLeavingHangar:: ; 138E
 	call AnimateSpaceshipAndClouds
 	ldh a, [hScrollX]
 	inc a
@@ -3386,7 +3386,7 @@ GameState_32:: ; 138E
 	ret nz
 	xor a, $08
 	ldh [hScrollColumnPhase], a
-	call GameState_31.clearColumn
+	call GameState_31_AirplaneMovingForward.clearColumn
 	ldh a, [$FFFB]
 	dec a
 	ldh [$FFFB], a
@@ -3527,11 +3527,11 @@ GameState_34_CreditsEnter::
 
 
 ;@ --------------------------------------------------------------------
-;@ GameState_35   [00:145A]   10 lines
+;@ GameState_35_CreditsStandStill   [00:145A]   10 lines
 ;@   reads     : hTimer
 ;@   calls     : AnimateSpaceshipAndClouds
 ;@ --------------------------------------------------------------------
-GameState_35:: ; 145A
+GameState_35_CreditsStandStill:: ; 145A
 	call AnimateSpaceshipAndClouds
 	ldh a, [hTimer]
 	and a
@@ -3623,13 +3623,13 @@ GameState_37_SpaceshipDeparts::
 	db $4E, $FC, $56, 00 ; D
 
 ;@ --------------------------------------------------------------------
-;@ GameState_38   [00:14DC]   67 lines
+;@ GameState_38_TheEndLettersFlying   [00:14DC]   67 lines
 ;@   called by : GameState_3A_GameOver
 ;@   reads     : hJoyPressed, hTimer
 ;@   writes    : hActiveRomBank, hGameState, hLevelIndex, hSuperStatus, hSuperballMario, hWorldAndLevel, rIE, rROMB0
 ;@   calls     : AnimateSpaceshipAndClouds, InitSound
 ;@ --------------------------------------------------------------------
-GameState_38::
+GameState_38_TheEndLettersFlying::
 	call AnimateSpaceshipAndClouds
 	ldh a, [hTimer]
 	and a
@@ -3697,7 +3697,7 @@ GameState_38::
 	ret
 
 AnimateSpaceshipAndClouds:
-	call GameState_31.animateSpaceship
+	call GameState_31_AirplaneMovingForward.animateSpaceship
 	call GameState_33.animateClouds
 	ret
 
@@ -3892,7 +3892,7 @@ GameState_0C_EmergeFromPipe:: ; 16DA
 
 ;@ --------------------------------------------------------------------
 ;@ AnimateMario   [00:16F5]   39 lines
-;@   called by : GameState_00_Gameplay, GameState_09_EnterPipe, GameState_0B_EnterPipeFromUnderground, GameState_0C_EmergeFromPipe, GameState_20, GameState_23
+;@   called by : GameState_00_Gameplay, GameState_09_EnterPipe, GameState_0B_EnterPipeFromUnderground, GameState_0C_EmergeFromPipe, GameState_20_WalkOffButton, GameState_23_WalkToFakeDaisy
 ;@   reads     : wMarioAnimationIndex, wMarioOnGround, wMarioWalkRunSpeed
 ;@   calls     : Call_1736, Call_1D26
 ;@ --------------------------------------------------------------------
@@ -3937,7 +3937,7 @@ AnimateMario:: ; 16F5 Animate mario?
 ; animate mario?
 ;@ --------------------------------------------------------------------
 ;@ Call_1736   [00:1736]   14 lines
-;@   called by : AnimateMario, GameState_07_LevelEndGate, GameState_0D, GameState_1C, GameState_22_ScrollScreen, GameState_26_FakeDaisyEscaping
+;@   called by : AnimateMario, GameState_07_LevelEndGate, GameState_0D_AutoScrollLevel, GameState_1C, GameState_22_ScrollScreen, GameState_26_FakeDaisyEscaping
 ;@   writes    : hHitboxRight
 ;@ --------------------------------------------------------------------
 Call_1736::
@@ -4033,7 +4033,7 @@ Jmp_1765:: ; 1765
 ; called every frame?
 ;@ --------------------------------------------------------------------
 ;@ CheckMarioTileCollision   [00:17BC]   97 lines
-;@   called by : GameState_00_Gameplay, GameState_20, GameState_23
+;@   called by : GameState_00_Gameplay, GameState_20_WalkOffButton, GameState_23_WalkToFakeDaisy
 ;@   reads     : hScrollX, hSuperStatus, wInvincibilityTimer, wMarioJumpStatus, wMarioWalkRunSpeed
 ;@   writes    : wMarioWalkRunSpeed
 ;@   calls     : InjureMario, Jmp_175B, Jmp_1765, Jmp_185D, KillMario, LookupTile
@@ -4639,7 +4639,7 @@ Call_1AAD:: ; 1AAD
 ; makes Mario win?
 ;@ --------------------------------------------------------------------
 ;@ Jmp_1B45   [00:1B45]   39 lines
-;@   called by : Call_1AAD, Call_1D26, Call_5089, Call_50CC, GameState_0D, Jmp_175B
+;@   called by : Call_1AAD, Call_1D26, Call_5089, Call_50CC, GameState_0D_AutoScrollLevel, Jmp_175B
 ;@   reads     : hSuperStatus, wMarioAnimationIndex
 ;@   writes    : hGameState, hSuperStatus, hTimer, rTMA, wGameTimerExpiringFlag, wMarioAnimationIndex, wMarioVisible
 ;@   calls     : Call_1ED4
@@ -4796,7 +4796,7 @@ AddCoin:: ; 1BFF
 	ld [wLivesEarnedLost], a		; award a life for collecting 100 coins
 ;@ --------------------------------------------------------------------
 ;@ DisplayCoins   [00:1C1B]   16 lines
-;@   called by : AddCoin, GameState_11, GameState_1B_LeaveBonusGame
+;@   called by : AddCoin, GameState_11_LevelStart, GameState_1B_LeaveBonusGame
 ;@   reads     : hCoins
 ;@ --------------------------------------------------------------------
 DisplayCoins::; 1C1B
@@ -4817,7 +4817,7 @@ DisplayCoins::; 1C1B
 ; 1C33
 ;@ --------------------------------------------------------------------
 ;@ UpdateLives   [00:1C33]   46 lines
-;@   called by : GameState_11, GameState_1B_LeaveBonusGame, VBlank
+;@   called by : GameState_11_LevelStart, GameState_1B_LeaveBonusGame, VBlank
 ;@   reads     : hInMenuOrDemo, wLives, wLivesEarnedLost
 ;@   writes    : hGameState, wLives, wLivesEarnedLost
 ;@ --------------------------------------------------------------------
@@ -4868,11 +4868,11 @@ UpdateLives::
 	jr .displayUpdatedLives
 
 ;@ --------------------------------------------------------------------
-;@ GameState_39   [00:1C7C]   51 lines
+;@ GameState_39_PreGameOver   [00:1C7C]   51 lines
 ;@   reads     : hWorldAndLevel, wNumContinues, wScore
 ;@   writes    : rTMA, wContinueWorldAndLevel, wGameTimerExpiringFlag, wNumContinues
 ;@ --------------------------------------------------------------------
-GameState_39::	; 1C7C
+GameState_39_PreGameOver::	; 1C7C
 	ld hl, $9C00			; todo window tile map?
 	ld de, .label_1CD7
 	ld b, $11
@@ -4926,12 +4926,12 @@ GameState_39::	; 1C7C
 ;@ --------------------------------------------------------------------
 ;@ GameState_3A_GameOver   [00:1CE8]   7 lines
 ;@   reads     : wGameOverTimerExpired
-;@   calls     : GameState_38
+;@   calls     : GameState_38_TheEndLettersFlying
 ;@ --------------------------------------------------------------------
 GameState_3A_GameOver:: ; 1CE8
 	ld a, [wGameOverTimerExpired]
 	and a
-	call nz, GameState_38.resetToMenu
+	call nz, GameState_38_TheEndLettersFlying.resetToMenu
 	ret
 
 ; prepare time up
@@ -5262,7 +5262,7 @@ Call_1D26::
 ; TODO name
 ;@ --------------------------------------------------------------------
 ;@ Call_1ED4   [00:1ED4]   34 lines
-;@   called by : Call_1AAD, GameState_02, GameState_03_PrepareDeath, GameState_0A_WarpUnderground, GameState_0B_EnterPipeFromUnderground, Jmp_1765
+;@   called by : Call_1AAD, GameState_02_ResetToCheckpoint, GameState_03_PrepareDeath, GameState_0A_WarpUnderground, GameState_0B_EnterPipeFromUnderground, Jmp_1765
 ;@   writes    : hProjectileStatus
 ;@ --------------------------------------------------------------------
 Call_1ED4:: ; 1ED4
@@ -5301,7 +5301,7 @@ Call_1ED4:: ; 1ED4
 
 ;@ --------------------------------------------------------------------
 ;@ UpdateInvincibility   [00:1F03]   25 lines
-;@   called by : GameState_00_Gameplay, GameState_0D
+;@   called by : GameState_00_Gameplay, GameState_0D_AutoScrollLevel
 ;@   reads     : hFrameCounter, wCurrentSong, wInvincibilityTimer, wMarioVisible
 ;@   writes    : wInvincibilityTimer, wMarioVisible
 ;@   calls     : StartLevelMusic
@@ -5746,7 +5746,7 @@ Jump_2188:: ; 2188
 
 ;@ --------------------------------------------------------------------
 ;@ UpdateScrollProgress   [00:2198]   18 lines
-;@   called by : GameState_00_Gameplay, GameState_0D, GameState_22_ScrollScreen, GameState_2E_MarioAndDaisyWalking, GameState_31
+;@   called by : GameState_00_Gameplay, GameState_0D_AutoScrollLevel, GameState_22_ScrollScreen, GameState_2E_MarioAndDaisyWalking, GameState_31_AirplaneMovingForward
 ;@   reads     : hColumnLoadRequest, hScrollX
 ;@   calls     : Jump_2188, LoadNextColumn
 ;@ --------------------------------------------------------------------
@@ -6141,12 +6141,12 @@ Call_2363:: ; 2363
 
 ; too many calls to far banks
 ;@ --------------------------------------------------------------------
-;@ GameState_0D   [00:2376]   65 lines
+;@ GameState_0D_AutoScrollLevel   [00:2376]   65 lines
 ;@   reads     : hActiveRomBank, hFrameCounter, hGamePaused, hSavedRomBank, wMarioAnimationIndex
 ;@   writes    : hActiveRomBank, hSavedRomBank, rROMB0, wMarioAnimationIndex
 ;@   calls     : Call_1736, Call_2491, Call_490D, Call_4FB2, Call_4FEC, CheckMarioEnemyCollision, CheckSuperballEnemyHit, Jmp_1B45
 ;@ --------------------------------------------------------------------
-GameState_0D::
+GameState_0D_AutoScrollLevel::
 ; INCBIN "baserom.gb", $2376, $2401 - $2376
     ldh  a, [hGamePaused]   ; hGamePaused = $FFB2
     and  a
@@ -6260,7 +6260,7 @@ LevelsWithAnimatedBackground::
 ; wBackgroundAnimated is clear. But what are the other variables?
 ;@ --------------------------------------------------------------------
 ;@ InitLevel   [00:2442]   16 lines
-;@   called by : GameState_08, GameState_11
+;@   called by : GameState_08, GameState_11_LevelStart
 ;@   reads     : hLevelIndex
 ;@   writes    : wBackgroundAnimated, wLevelProgress
 ;@   calls     : InitEnemySlots
@@ -6283,7 +6283,7 @@ InitLevel::
 ; initializes objects? skips over enemies?
 ;@ --------------------------------------------------------------------
 ;@ InitEnemySlots   [00:245C]   39 lines
-;@   called by : GameState_02, GameState_0A_WarpUnderground, GameState_0B_EnterPipeFromUnderground, InitLevel
+;@   called by : GameState_02_ResetToCheckpoint, GameState_0A_WarpUnderground, GameState_0B_EnterPipeFromUnderground, InitLevel
 ;@   reads     : hLevelIndex, wLevelProgress
 ;@ --------------------------------------------------------------------
 InitEnemySlots:: ; 245C
@@ -6327,7 +6327,7 @@ InitEnemySlots:: ; 245C
 
 ;@ --------------------------------------------------------------------
 ;@ Call_2491   [00:2491]   6 lines
-;@   called by : GameState_00_Gameplay, GameState_05_LevelClearScoring, GameState_0D, GameState_1C, GameState_1D, GameState_27_RemoveBlocks
+;@   called by : GameState_00_Gameplay, GameState_05_LevelClearScoring, GameState_0D_AutoScrollLevel, GameState_1C, GameState_1D, GameState_27_RemoveBlocks
 ;@   calls     : DrawEnemies, SpawnEnemies, UpdateEnemies
 ;@ --------------------------------------------------------------------
 Call_2491:: ; 2491
@@ -6701,7 +6701,7 @@ INCBIN "baserom.gb", $3564, $3D1A - $3564
 ; called at level start, is some sort of init
 ;@ --------------------------------------------------------------------
 ;@ UpdateBonusGameTimer   [00:3D1A]   63 lines
-;@   called by : GameState_11
+;@   called by : GameState_11_LevelStart
 ;@   calls     : DisplayTimer
 ;@ --------------------------------------------------------------------
 UpdateBonusGameTimer: ; 3D1A
@@ -6849,11 +6849,11 @@ GameState_12_EnterBonusGame:: ; 3D97
 	ret
 
 ;@ --------------------------------------------------------------------
-;@ GameState_13   [00:3DD7]   137 lines
+;@ GameState_13_EnteringBonusGame   [00:3DD7]   137 lines
 ;@   reads     : rDIV
 ;@   writes    : hGameState, rLCDC
 ;@ --------------------------------------------------------------------
-GameState_13:: ; 3DD7
+GameState_13_EnteringBonusGame:: ; 3DD7
 	xor a
 	ldh [rLCDC], a
 	ld hl, $9800
@@ -7113,7 +7113,7 @@ Call_3F13::	; 3F13
 ; Print spaces instead of leading zeroes TODO Reuses FFB1?
 ;@ --------------------------------------------------------------------
 ;@ DisplayScore   [00:3F39]   64 lines
-;@   called by : GameState_0E, VBlank
+;@   called by : GameState_0E_InitMenu, VBlank
 ;@   reads     : hColumnLoadRequest, hScoreLeadingZero
 ;@   writes    : hScoreLeadingZero
 ;@ --------------------------------------------------------------------

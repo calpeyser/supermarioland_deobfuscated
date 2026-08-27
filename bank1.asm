@@ -43,7 +43,7 @@ INCBIN "gfx/backgroundWorld4.2bpp"
 
 ;@ --------------------------------------------------------------------
 ;@ Call_4FB2   [01:4FB2]   35 lines
-;@   called by : GameState_0D
+;@   called by : GameState_0D_AutoScrollLevel
 ;@   reads     : hFrameCounter, hScrollX, wLevelEndCounter
 ;@   writes    : hScrollX
 ;@   calls     : Call_1D26, Call_2C9F, Call_50CC
@@ -85,7 +85,7 @@ Call_4FB2:: ; 4FB2
 
 ;@ --------------------------------------------------------------------
 ;@ Call_4FEC   [01:4FEC]   101 lines
-;@   called by : GameState_0D
+;@   called by : GameState_0D_AutoScrollLevel
 ;@   reads     : hJoyHeld, hScrollX, hSuperStatus, wLevelEndCounter
 ;@   calls     : Call_5089, Call_50CC, LookupTile
 ;@ --------------------------------------------------------------------
@@ -298,7 +298,7 @@ Call_50CC:: ; 50CC
 
 ;@ --------------------------------------------------------------------
 ;@ CheckSuperballEnemyHit   [01:5118]   77 lines
-;@   called by : GameState_0D
+;@   called by : GameState_0D_AutoScrollLevel
 ;@   reads     : wMarioX
 ;@   writes    : hEnemyX, hEnemyY, hGameState, hHitboxBottom, hSuperStatus, hSuperballMario, hTimer
 ;@   calls     : Call_200A, FindNeighboringTile

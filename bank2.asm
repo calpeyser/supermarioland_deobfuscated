@@ -57,7 +57,7 @@ GameState_1A:: ; 5841
 ; why
 ;@ --------------------------------------------------------------------
 ;@ UpdateTimerAndFloaties   [02:5844]   7 lines
-;@   called by : GameState_00_Gameplay, GameState_05_LevelClearScoring, GameState_0D
+;@   called by : GameState_00_Gameplay, GameState_05_LevelClearScoring, GameState_0D_AutoScrollLevel
 ;@   calls     : UpdateFloaties, UpdateGameTimer
 ;@ --------------------------------------------------------------------
 UpdateTimerAndFloaties:: ; 5844

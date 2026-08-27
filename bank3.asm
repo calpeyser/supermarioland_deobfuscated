@@ -355,7 +355,7 @@ Call_490D:: ; 490D
 
 ;@ --------------------------------------------------------------------
 ;@ Jmp_4966   [03:4966]   204 lines
-;@   called by : GameState_00_Gameplay, GameState_0D
+;@   called by : GameState_00_Gameplay, GameState_0D_AutoScrollLevel
 ;@   reads     : hGameState, hInMenuOrDemo, hJoyHeld, hJoyPressed, hLevelIndex, hSuperballMario, wMarioSpeed, wMarioWalkRunSpeed
 ;@   writes    : wMarioWalkRunSpeed, wSuperballTTL
 ;@ --------------------------------------------------------------------
@@ -2735,7 +2735,7 @@ UpdateSoundWrapper__7FF0:: ; 7FF0
 
 ;@ --------------------------------------------------------------------
 ;@ InitSound   [03:7FF3]   22 lines
-;@   called by : GameState_06_LevelWon, GameState_0F, GameState_1E_OpenGate, GameState_38, Init, StartLevelMusic
+;@   called by : GameState_06_LevelWon, GameState_0F, GameState_1E_OpenGate, GameState_38_TheEndLettersFlying, Init, StartLevelMusic
 ;@   calls     : ContinueInjurySFX, _InitSound
 ;@ --------------------------------------------------------------------
 InitSound:: ; 7FF3
