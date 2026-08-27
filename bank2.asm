@@ -491,7 +491,7 @@ _GameState_14:: ; 5A72
 	ret
 
 _GameState_15:: ; 5ABB
-	ld a, [$DA27]	; ladder status?
+	ld a, [wLadderStatus]	; ladder status?
 	bit 0, a
 	jr z, .jmp_5AC9
 	ldh a, [hJoyHeld]
@@ -506,7 +506,7 @@ _GameState_15:: ; 5ABB
 	ret nz
 	xor a
 	ld [hl], a
-	ld a, [$DA27]
+	ld a, [wLadderStatus]
 	bit 0, a
 	jr z, .jmp_5B07
 	ld hl, wOAMBuffer + 4*$C
@@ -547,7 +547,7 @@ _GameState_15:: ; 5ABB
 .jmp_5B07
 	ld hl, $98EA	; ladder top floor position
 	ld bc, $0060	; 3 screen widths
-	ld de, $DA27
+	ld de, wLadderStatus
 	ld a, [de]
 	inc a
 	ld [de], a
@@ -599,7 +599,7 @@ _GameState_15:: ; 5ABB
 .jmp_5B56
 	xor a
 	ld [$DA22], a
-	ld [$DA27], a
+	ld [wLadderStatus], a
 	ld [$DA1A], a
 	ld a, $17
 	ldh [hGameState], a

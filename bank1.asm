@@ -44,7 +44,7 @@ Call_4FB2:: ; 4FB2
 	ldh a, [hFrameCounter]
 	and a, $01
 	ret nz
-	ld a, [$C0D2]
+	ld a, [wLevelEndCounter]
 	cp a, $07
 	jr c, .jmp_4FCB
 	ldh a, [hScrollX]
@@ -62,7 +62,7 @@ Call_4FB2:: ; 4FB2
 	ld b, $01
 	call Call_1D26.call_1EA4	; scroll sprites?
 	call Call_2C9F				; scroll enemies?
-	ld hl, $C202				; X coord
+	ld hl, wMarioX				; X coord
 	dec [hl]
 	ld a, [hl]
 	and a
@@ -71,7 +71,7 @@ Call_4FB2:: ; 4FB2
 .jmp_4FE2
 	ld c, $08
 	call Call_50CC
-	ld hl, $C202
+	ld hl, wMarioX
 	inc [hl]
 	ret
 
@@ -89,12 +89,12 @@ Call_4FEC:: ; 4FEC
 	ret z
 	ld c, $FA
 	call Call_50CC
-	ld hl, $C202
+	ld hl, wMarioX
 	ld a, [hl]
 	cp a, $10
 	ret c
 	dec [hl]
-	ld a, [$C0D2]
+	ld a, [wLevelEndCounter]
 	cp a, $07
 	ret nc
 	dec [hl]
@@ -103,7 +103,7 @@ Call_4FEC:: ; 4FEC
 .jmp_5014
 	ld c, $08
 	call Call_50CC
-	ld hl, $C202
+	ld hl, wMarioX
 	ld a, [hl]
 	cp a, $A0
 	ret nc
@@ -114,7 +114,7 @@ Call_4FEC:: ; 4FEC
 	call Call_5089
 	cp a, $FF
 	jr z, .jmp_4FF6
-	ld hl, $C201				; Y coord
+	ld hl, wMarioY				; Y coord
 	ld a, [hl]
 	cp a, $94					; ?
 	jr nc, .jmp_4FF6
@@ -125,7 +125,7 @@ Call_4FEC:: ; 4FEC
 	call .call_5046
 	cp a, $FF
 	jr z, .jmp_4FF6
-	ld hl, $C201
+	ld hl, wMarioY
 	ld a, [hl]
 	cp a, $30
 	jr c, .jmp_4FF6
@@ -133,7 +133,7 @@ Call_4FEC:: ; 4FEC
 	jr .jmp_4FF6
 
 .call_5046
-	ld hl, $C201
+	ld hl, wMarioY
 	ldh a, [hSuperStatus]
 	ld b, $FD
 	and a
@@ -177,7 +177,7 @@ Call_4FEC:: ; 4FEC
 	ret
 
 Call_5089:: ; 5089
-	ld hl, $C201
+	ld hl, wMarioY
 	ldi a, [hl]
 	add a, $0A
 	ldh [$FFAD], a
@@ -226,7 +226,7 @@ Call_50CC:: ; 50CC
 	jr z, .jmp_50D8
 	ld de, $0501
 .jmp_50D8
-	ld hl, $C201
+	ld hl, wMarioY
 	ldi a, [hl]
 	add d
 	ldh [$FFAD], a
@@ -272,7 +272,7 @@ Call_50CC:: ; 50CC
 
 Call_5118:: ; 5118
 	ld b, $03				; 3 projectiles
-	ld hl, $FFA9			; projectile status
+	ld hl, hProjectileStatus			; projectile status
 	ld de, wOAMBuffer + 1
 .loop
 	ldi a, [hl]
@@ -296,8 +296,8 @@ Call_5118:: ; 5118
 	inc a
 	inc a
 	ld [de], a
-	ldh [$FFA1], a
-	ldh [$FFC3], a			; isn't this for enemies?
+	ldh [hHitboxBottom], a
+	ldh [hEnemyX], a			; isn't this for enemies?
 	cp a, $A9
 	jr c, .jmp_5143
 .jmp_513C
@@ -312,7 +312,7 @@ Call_5118:: ; 5118
 	push af
 	dec e
 	ld a, [de]
-	ldh [$FFC2], a
+	ldh [hEnemyY], a
 	add a, $06
 	ldh [$FFAD], a
 	pop af
@@ -328,7 +328,7 @@ Call_5118:: ; 5118
 	jr .jmp_5124
 
 .jmp_515E
-	ld a, [$C202]
+	ld a, [wMarioX]
 	cp a, $01
 	jr c, .jmp_5168
 	cp a, $ED

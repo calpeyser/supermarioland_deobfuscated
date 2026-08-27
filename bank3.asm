@@ -87,9 +87,9 @@ Call_4823:: ; 4823
 	ld l, a
 	ld de, $0010
 	add hl, de
-	ldh a, [$FF8F]
+	ldh a, [hHitboxRight]
 	dec a
-	ldh [$FF8F], a
+	ldh [hHitboxRight], a
 	ret z
 	jr Call_4823
 
@@ -357,13 +357,13 @@ Jmp_4966:: ; 4966
 	ld a, [de]
 	and a
 	jr nz, .jmp_4988
-	ld a, [$C20C]
+	ld a, [wMarioSpeed]
 	cp a, $03
 	ld a, $02
 	jr c, .jmp_4985
 	ld a, $04
 .jmp_4985
-	ld [$C20E], a			; walking or running
+	ld [wMarioWalkRunSpeed], a			; walking or running
 .jmp_4988
 	pop af
 	jr .jmp_49AC
@@ -372,18 +372,18 @@ Jmp_4966:: ; 4966
 	ldh a, [hGameState]
 	cp a, $0D
 	jp z, .jmp_4A7F
-	ld de, $C207			; jump status
+	ld de, wMarioJumpStatus			; jump status
 	ldh a, [hJoyPressed]
 	ld b, a
 	ldh a, [hJoyHeld]
 	bit 1, a				; B button todo
 	jr nz, .jmp_4975
 	push af
-	ld a, [$C20E]			; walking running
+	ld a, [wMarioWalkRunSpeed]			; walking running
 	cp a, $04
 	jr nz, .jmp_49AB
 	ld a, $02
-	ld [$C20E], a
+	ld [wMarioWalkRunSpeed], a
 .jmp_49AB
 	pop af
 .jmp_49AC
@@ -404,14 +404,14 @@ Jmp_4966:: ; 4966
 	ld a, [de]
 	and a
 	jr nz, .jmp_49B5
-	ld hl, $C20A			; 1 if on ground
+	ld hl, wMarioOnGround			; 1 if on ground
 	ld a, [hl]
 	and a
 	jr z, .jmp_49B5
 	bit 0, b				; A button
 	jr z, .jmp_49B5
 	ld [hl], $00
-	ld hl, $C203			; animation thing
+	ld hl, wMarioAnimationIndex			; animation thing
 	push hl
 	ld a, [hl]
 	cp a, $18				; crouching big?
@@ -419,14 +419,14 @@ Jmp_4966:: ; 4966
 	and a, $F0
 	or a, $04
 	ld [hl], a
-	ld a, [$C20E]			; walking running
+	ld a, [wMarioWalkRunSpeed]			; walking running
 	cp a, $04
 	jr z, .jmp_49ED
 	ld a, $02
-	ld [$C20E], a
+	ld [wMarioWalkRunSpeed], a
 	ld [$C208], a
 .jmp_49ED
-	ld hl, $C20C
+	ld hl, wMarioSpeed
 	ld [hl], $30
 .jmp_49F2
 	ld hl, $DFE0
@@ -437,11 +437,11 @@ Jmp_4966:: ; 4966
 	jr .jmp_49B5
 
 .jmp_49FD
-	ld hl, $C20C
+	ld hl, wMarioSpeed
 	ld a, [hl]
 	cp a, $06
 	jr nz, .jmp_4A0C
-	ldh a, [$FF9F]
+	ldh a, [hInMenuOrDemo]
 	and a
 	jr nz, .jmp_4A0C
 	ld [hl], $00
@@ -455,7 +455,7 @@ Jmp_4966:: ; 4966
 	ret z
 	ld b, $01
 .jmp_4A1A
-	ld hl, $FFA9			; projectile status?
+	ld hl, hProjectileStatus			; projectile status?
 	ld de, wOAMBuffer
 .jmp_4A20
 	ldi a, [hl]
@@ -471,9 +471,9 @@ Jmp_4966:: ; 4966
 
 .jmp_4A2C
 	push hl
-	ld hl, $C205
+	ld hl, wMarioFacing
 	ld b, [hl]
-	ld hl, $C201
+	ld hl, wMarioY
 	ldi a, [hl]
 	add a, $FE
 	ld [de], a
@@ -519,7 +519,7 @@ Jmp_4966:: ; 4966
 	ret
 
 .jmp_4A77
-	ld hl, $C20C
+	ld hl, wMarioSpeed
 	ld [hl], $20
 	jp .jmp_49BA
 .jmp_4A7F
@@ -645,7 +645,7 @@ _UpdateSound__6662:: ; 6662
 	xor a
 	ld [$DFE0], a
 	ld [$DFE8], a
-	ld [$DFF0], a
+	ld [wSfxRequestNoise], a
 	ld [$DFF8], a
 	ldh [hPauseUnpauseMusic], a
 	ld a, $07
@@ -668,7 +668,7 @@ _UpdateSound__6662:: ; 6662
 	xor a
 	ld [$DFE1], a
 	ld [$DFF1], a
-	ld [$DFF9], a
+	ld [wCurrentlyPlayingSound], a
 	ld a, $30
 	ldh [hPauseTuneTimer], a
 .playFirstNote
@@ -707,7 +707,7 @@ _UpdateSound__6662:: ; 6662
 	db $B2, $E3, $C1, $C7	; 2080.5 Hz ~ C7
 
 PlayWaveSFX:: ; 66F6
-	ld a, [$DFF0]	; SFX channel, only has boss cry
+	ld a, [wSfxRequestNoise]	; SFX channel, only has boss cry
 	cp a, $01
 	jr z, .startBossCry
 	ld a, [$DFF1]
@@ -732,7 +732,7 @@ PlayWaveSFX:: ; 66F6
 	ld b, a				; here? Bug?
 	ld a, $D0
 	add b
-	ld [$DFF5], a		; "random" number from D0 to FF (always ~D1?)
+	ld [wRandomValue], a		; "random" number from D0 to FF (always ~D1?)
 	ld hl, .bossCryChannelData
 	jp SetupChannel.wave	; copy HL to wave registers
 
@@ -743,7 +743,7 @@ PlayWaveSFX:: ; 66F6
 	ld hl, $DFF4
 	inc [hl]
 	ld a, [hl]
-	ld hl, $DFF5
+	ld hl, wRandomValue
 	cp a, $0E
 	jr nc, .lowerFreq
 	inc [hl]
@@ -834,7 +834,7 @@ StartJumpSFX:: ; 67AF
 	ld a, $10
 	ld hl, JumpChannelData
 	call sfx_play__Jmp_69C6
-	ld hl, $DFE4
+	ld hl, wSoundNoteIndex
 	ld [hl], $0A
 	inc l
 	ld [hl], $86
@@ -844,7 +844,7 @@ ContinueJumpSFX:: ; 67C4
 	call updateSoundProgress
 	and a
 	jp z, ContinueSquareSFX.stop
-	ld hl, $DFE4
+	ld hl, wSoundNoteIndex
 	ld e, [hl]
 	inc l
 	ld d, [hl]
@@ -906,7 +906,7 @@ StartCoinSFX:: ; 6813
 	jp sfx_play__Jmp_69C6
 
 ContinueCoinSFX:: ; 681D
-	ld hl, $DFE4
+	ld hl, wSoundNoteIndex
 	inc [hl]
 	ld a, [hl]
 	cp a, $04
@@ -936,7 +936,7 @@ ContinueStompSFX:: ; 6849
 	call updateSoundProgress
 	and a
 	ret nz
-	ld hl, $DFE4
+	ld hl, wSoundNoteIndex
 	ld a, [hl]
 	inc [hl]
 	cp a, $00
@@ -1013,7 +1013,7 @@ ContinueInjurySFX::
 	call updateSoundProgress
 	and a
 	ret nz
-	ld hl, $DFE4
+	ld hl, wSoundNoteIndex
 	ld c, [hl]
 	inc [hl]
 	ld b, $00
@@ -1065,9 +1065,9 @@ ContinueOneUpSFX:: ; 6916
 	call updateSoundProgress
 	and a
 	ret nz
-	ld a, [$DFE4]		; when sound has ended, increment and load a new note
+	ld a, [wSoundNoteIndex]		; when sound has ended, increment and load a new note
 	inc a
-	ld [$DFE4], a
+	ld [wSoundNoteIndex], a
 	cp a, $01
 	jr z, .playNote2
 	cp a, $02
@@ -1110,7 +1110,7 @@ StartExplosionSFX:: ; 6957
 	jp sfx_play__Jmp_69C6
 
 Call_695F:: ; 695F
-	ld a, [$DFF9]
+	ld a, [wCurrentlyPlayingSound]
 	cp a, SFX_EXPLOSION
 	ret z
 	ret
@@ -1181,7 +1181,7 @@ ContinueNoiseSFX:: ; 69AF
 	ret nz
 .stop
 	xor a
-	ld [$DFF9], a
+	ld [wCurrentlyPlayingSound], a
 
     IF DEF(TARGET_MEGADUCK)  ; #MD: Patch: OK (no addr change)
         ; MegaDuck NR42 nybble swap
@@ -1336,9 +1336,9 @@ SetupWavePattern:: ; 6A26
 _InitSound:: ; 6A33
 	xor a
 	ld [$DFE1], a
-	ld [$DFE9], a
+	ld [wCurrentSong], a
 	ld [$DFF1], a
-	ld [$DFF9], a	; currently playing music and sfx
+	ld [wCurrentlyPlayingSound], a	; currently playing music and sfx
 	ld [$DF1F], a
 	ld [$DF2F], a
 	ld [$DF3F], a
@@ -1438,7 +1438,7 @@ StartMusic:: ; 6AB5
 	jp .initStereo		; Weird
 
 .initStereo
-	ld a, [$DFE9]
+	ld a, [wCurrentSong]
 	ld hl, StereoData
 .loop
 	dec a
@@ -1465,7 +1465,7 @@ StartMusic:: ; 6AB5
 	ret
 
 PanExplosion:: ; 6AF6
-	ld a, [$DFF9]
+	ld a, [wCurrentlyPlayingSound]
 	cp a, SFX_EXPLOSION		; Hmh?
 	ret nz
 	ld a, [hl]				; Always FFD5. Bug
@@ -1479,7 +1479,7 @@ PanExplosion:: ; 6AF6
 	ret
 
 PanStereo:: ; 6B09
-	ld a, [$DFE9]
+	ld a, [wCurrentSong]
 	and a
 	ret z
 	ldh a, [hMonoOrStereo]
@@ -1760,7 +1760,7 @@ Jmp_6C4C:
 	jr .jmp_6C86
 
 .stopSong
-	ld hl, $DFE9
+	ld hl, wCurrentSong
 	ld [hl], $00
 	ld a, AUDTERM_ALL_ON ; $FF
 	ldh [rNR51], a  ; #MD: OK
@@ -1768,7 +1768,7 @@ Jmp_6C4C:
 	ret
 
 PlayMusic:: ; 6CBE
-	ld hl, $DFE9				; music currently playing
+	ld hl, wCurrentSong				; music currently playing
 	ld a, [hl]
 	and a
 	ret z

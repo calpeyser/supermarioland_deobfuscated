@@ -1,0 +1,69 @@
+# Memory map names derived from the original authors' own inline annotations.
+# Format: ADDR  NAME  # evidence
+# Confidence: [A] declarative or >=2 independent sites agreeing; [B] author hedged with "?"
+#             but usage is coherent. Vague annotations are deliberately left unnamed.
+
+# --- Mario state (WRAM) ---
+$C200  wMarioVisible                # [A] "mario visible"
+$C201  wMarioY                      # [A] "Mario Y pos" / "player Y pos" / "Y pos"
+$C202  wMarioX                      # [A] "Mario X pos" / "mario x pos" / "X pos"
+$C203  wMarioAnimationIndex         # [A] "animation index, upper nibble is 1 if large mario"
+$C204  wMarioHasControl             # [B] "mario in control?"
+$C205  wMarioFacing                 # [A] "dir facing" / "direction mario is facing"
+$C207  wMarioJumpStatus             # [A] "jump status"
+$C20A  wMarioOnGround               # [A] "1 if mario on the ground"
+$C20B  wMarioAnimationFrameCounter  # [A] "animation frame counter"
+$C20C  wMarioSpeed                  # [B] "momentum?" / "speed?"
+$C20E  wMarioWalkRunSpeed           # [A] "02 walking, 04 running" (3 sites)
+$C20F  wMarioStepPhase              # [B] "01 standing still, flips between 1 and 0 walking"
+
+# --- Level / progress (WRAM) ---
+$C0AB  wLevelProgress               # [A] "progress in level" (3 sites)
+$C0AC  wDeathAnimationCounter       # [A] "death animation counter"
+$C0CD  wBlockContents               # [A] "contents of block"
+$C0D2  wLevelEndCounter             # [A] "starts incrementing at end of level"
+$C0DD  wDeathY                      # [B] "death Y position?"
+$D000  wObjectAttributes            # [B] "object flags" / "object attributes, lower 3 bits"
+$DA27  wLadderStatus                # [B] "ladder status?" / "ladder position in floors?"
+
+# --- Demo mode (WRAM) ---
+$C0D7  wDemoTimer                   # [A] "Demo timer"
+$C0DC  wDemoSelect                  # [A] "Demo select"
+
+# --- Sound engine (WRAM) ---
+$DFE4  wSoundNoteIndex              # [B] "when sound has ended, increment and load a new note"
+$DFE9  wCurrentSong                 # [A] "currently playing song"
+$DFF0  wSfxRequestNoise             # [A] "SFX channel, only has boss cry"
+$DFF5  wRandomValue                 # [A] "random number from D0 to FF"
+$DFF9  wCurrentlyPlayingSound       # [A] "currently playing music and sfx"
+
+# --- Enemy scratch block (HRAM) ---
+$FFC0  hEnemyId                     # [A] "enemy ID"
+$FFC1  hEnemySpeed                  # [B] "update Y position with Y speed"
+$FFC2  hEnemyY                      # [A] "enemy Y pos buffer" / "Y pos"
+$FFC3  hEnemyX                      # [A] "enemy X pos buffer" / "future X pos" / "X pos"
+$FFC4  hEnemyScriptIndex            # [A] "script index" (3 sites)
+$FFC6  hEnemySpriteIndex            # [A] "animation index/sprite index"
+$FFC7  hEnemyFlags                  # [B] "flags" / "bit 1 set if gravity works on it?"
+$FFCA  hEnemyMortalityAndSize       # [B] "mortality and dimensions"
+$FFCB  hEnemyCarryingMario          # [A] "carrying Mario"
+$FFCC  hEnemyHealth                 # [A] "health, above C0 means boss"
+
+# --- Collision / hitbox scratch (HRAM) ---
+$FF8F  hHitboxRight                 # [A] "BB right" / "right BB x"
+$FFA0  hHitboxTop                   # [B] "bounding box top?"
+$FFA1  hHitboxBottom                # [B] "bounding box bottom?" / "bottom Y"
+$FFA2  hHitboxLeft                  # [B] "bounding box left?" / "left BB x"
+
+# --- Rendering / scroll (HRAM) ---
+$FFB0  hTilemapAddrHi               # [A] "goes from 98 to ~9B" = the BG tilemap page
+$FFA3  hScrollColumnPhase           # [B] "switches between 0 and 8, depending on scroll coord"
+$FFE9  hNextColumnToLoad            # [B] "first not yet loaded column"
+$FFEA  hColumnLoadRequest           # [B] "01 if a new column needs to be loaded, 03 if..."
+
+# --- Misc (HRAM) ---
+$FF9F  hInMenuOrDemo                # [B] "only non zero in the menu" / "=28 in menu and during demo"
+$FFA9  hProjectileStatus            # [A] "projectile status"
+$FFB1  hScoreLeadingZero            # [B] "start by printing spaces instead of leading zeroes"
+$FFF5  hPipeExitScreen              # [B] "screen which we'd've exited out of pipe"
+$FFF9  hUnderground                 # [A] "nonzero if underground" (3 sites)
