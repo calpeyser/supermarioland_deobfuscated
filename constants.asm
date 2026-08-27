@@ -1,0 +1,19 @@
+; Game-state values written to / compared against hGameState.
+; Only states whose handler carries evidence-backed naming are defined here;
+; unnamed states remain bare literals rather than being given invented names.
+
+DEF GAMESTATE_GAMEPLAY              EQU $00
+DEF GAMESTATE_PREPARE_DEATH         EQU $03
+DEF GAMESTATE_DEATH_ANIMATION       EQU $04
+DEF GAMESTATE_LEVEL_CLEAR_SCORING   EQU $05
+DEF GAMESTATE_LEVEL_WON             EQU $06
+DEF GAMESTATE_LEVEL_END_GATE        EQU $07
+DEF GAMESTATE_ENTER_PIPE            EQU $09
+DEF GAMESTATE_WARP_UNDERGROUND      EQU $0A
+DEF GAMESTATE_ENTER_PIPE_FROM_UG    EQU $0B
+DEF GAMESTATE_EMERGE_FROM_PIPE      EQU $0C
+DEF GAMESTATE_ENTER_BONUS_GAME      EQU $12
+DEF GAMESTATE_DRAW_LADDER           EQU $16
+DEF GAMESTATE_LEAVE_BONUS_GAME      EQU $1B
+DEF GAMESTATE_REMOVE_BLOCKS         EQU $27
+DEF GAMESTATE_GAME_OVER             EQU $3A

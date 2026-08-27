@@ -1,3 +1,4 @@
+INCLUDE "constants.asm"
 INCLUDE "charmap.asm"
 INCLUDE "inc/hardware.inc"
 INCLUDE "wram.asm"
@@ -20,6 +21,12 @@ SECTION "RST 8", ROM0[$0008]
 SECTION "RST 28", ROM0[$0028]
 ; Immediately following the return address is a jump table
 ; A is used as index
+;@ --------------------------------------------------------------------
+;@ TableJump   [00:0028]   40 lines
+;@   reads     : hActiveRomBank
+;@   writes    : rROMB0
+;@   calls     : Init, LCDStatus, UpdateSoundWrapper__7FF0, VBlank
+;@ --------------------------------------------------------------------
 TableJump::
 	add a		; Multiply A by 2, as addresses are 16 bit
 	pop hl
@@ -60,6 +67,13 @@ SECTION "Interrupt Timer", ROM0[$0050]
 	pop af
 	reti
 
+;@ --------------------------------------------------------------------
+;@ VBlank   [00:0060]   35 lines
+;@   called by : TableJump
+;@   reads     : hGameState
+;@   writes    : hVBlankOccurred, rSCX, rSCY
+;@   calls     : AnimateBackground, DisplayScore, DisplayTimer, DrawColumn, UpdateFloatySprites, UpdateLives, hDMARoutine
+;@ --------------------------------------------------------------------
 VBlank:: ; $0060
 ; Coincides with the joypad interrupt, which is unused afaict
 	push af
@@ -67,7 +81,7 @@ VBlank:: ; $0060
 	push de
 	push hl
     call DrawColumn		; Drawing new areas of the map
-	call Call_1B86		; Collision with coins, coin blocks, etc...?
+	call UpdateFloatySprites		; Collision with coins, coin blocks, etc...?
 	call UpdateLives
 	call hDMARoutine
 	call DisplayScore
@@ -76,7 +90,7 @@ VBlank:: ; $0060
 	ld hl, hFrameCounter
 	inc [hl]
 	ldh a, [hGameState]
-	cp a, $3A			; Game over? TODO
+	cp a, GAMESTATE_GAME_OVER			; Game over? TODO
 	jr nz, .gameNotOver
 	ld hl, rLCDC
 	set LCDCF_B_WINON, [hl]			; Turn on window
@@ -95,6 +109,13 @@ VBlank:: ; $0060
 ; Update scroll registers.
 ; Called after the 16th scanline, so the HUD doesn't scroll. Also called later
 ; to turn the window off
+;@ --------------------------------------------------------------------
+;@ LCDStatus   [00:0095]   81 lines
+;@   called by : TableJump
+;@   reads     : hGameState, hScrollX, wGameOverWindowEnabled, wScrollY
+;@   writes    : rLYC, rSCX, rSCY, wGameOverTimerExpired, wGameOverWindowEnabled
+;@   calls     : Start
+;@ --------------------------------------------------------------------
 LCDStatus::
 	push af
 	push hl
@@ -111,7 +132,7 @@ LCDStatus::
 	ldh [rSCY], a
 .checkForGameOver
 	ldh a, [hGameState]
-	cp a, $3A
+	cp a, GAMESTATE_GAME_OVER
 	jr nz, .out			; game not over
 	ld hl, rWY
 	ld a, [hl]
@@ -180,6 +201,11 @@ Start::	; 0150
 	jp Init
 
 ; X and Y coordinates in FFAD and FFAE
+;@ --------------------------------------------------------------------
+;@ LookupTile   [00:0153]   11 lines
+;@   called by : Call_1AAD, Call_2B5D, Call_2B84, Call_2B9A, Call_2BE4, Call_2BFE
+;@   calls     : _LookupTile
+;@ --------------------------------------------------------------------
 LookupTile:: ; 153
 	call _LookupTile	; If we're really unlucky, a timer interrupt might
 	WAIT_FOR_HBLANK		; fire between the WAIT_FOR_HBLANK, and the actual
@@ -191,6 +217,12 @@ LookupTile:: ; 153
 
 ; Add BCD encoded DE to the score. Signal that the displayed version
 ; needs to be updated
+;@ --------------------------------------------------------------------
+;@ AddScore   [00:0166]   26 lines
+;@   called by : AddCoin, Call_200A, GameState_05_LevelClearScoring, Jmp_185D, UpdateFloaties
+;@   reads     : hInMenuOrDemo
+;@   writes    : hScoreLeadingZero
+;@ --------------------------------------------------------------------
 AddScore:: ; 0166
 	ldh a, [hInMenuOrDemo]		; Demo mode?
 	and a
@@ -217,6 +249,13 @@ AddScore:: ; 0166
 	ld [hl], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ Init   [00:0185]   298 lines
+;@   called by : Start, TableJump, pauseOrReset
+;@   reads     : hFrameCounter, hGamePaused, hGameState, hInMenuOrDemo, hJoyHeld, hVBlankOccurred, rLY, wGameTimerExpiringFlag
+;@   writes    : hActiveRomBank, hGameState, hLevelIndex, hVBlankOccurred, hWinCount, hWorldAndLevel, rBGP, rIE
+;@   calls     : Call_1736, InitSound, KillMario, ReadJoypad, pauseOrReset
+;@ --------------------------------------------------------------------
 Init::	; 0185
 	ld a, (IEF_VBLANK | IEF_STAT)
 	di
@@ -515,6 +554,12 @@ dw $1D1D ; 0x3C ✓ Time up
 dw $06BB ; 0x3D  
 
 ;322
+;@ --------------------------------------------------------------------
+;@ GameState_0E   [00:0322]   160 lines
+;@   reads     : hLevelIndex, hWinCount, wNumContinues, wWinCount
+;@   writes    : hGameState, hInMenuOrDemo, hLevelIndex, hScreenIndex, hScrollX, hSuperStatus, hUnderground, hWinCount
+;@   calls     : Call_5CF, CopyData, DisplayScore, FillStartMenuTopRow, UpdateLevelColumns
+;@ --------------------------------------------------------------------
 GameState_0E::
 	xor a
 	ldh [rLCDC], a	; Turn off LCD
@@ -567,7 +612,7 @@ GameState_0E::
 	push af
 	ld a, $0C
 	ldh [hLevelIndex], a
-	call Call_807			; Draw level into tile map TODO based on FFE4?
+	call UpdateLevelColumns			; Draw level into tile map TODO based on FFE4?
     pop af
 	ldh [hLevelIndex], a
 	ld a, $3C
@@ -675,6 +720,12 @@ GameState_0E::
 db "continue *"
 
 ; 450
+;@ --------------------------------------------------------------------
+;@ GameState_0F   [00:0450]   178 lines
+;@   reads     : hActiveRomBank, hJoyPressed, hLevelIndex, hWinCount, hWorldAndLevel, wContinueWorldAndLevel, wDemoSelect, wDemoTimer
+;@   writes    : hGameState, hInMenuOrDemo, hLevelIndex, hWinCount, hWorldAndLevel, rIE, rIF, rROMB0
+;@   calls     : InitSound
+;@ --------------------------------------------------------------------
 GameState_0F::
 .startPressed
 	ld a, [wOAMBuffer + 4]
@@ -861,6 +912,12 @@ FillStartMenuTopRow: ; 56F
 	jr nz, .loop
 	ret
 
+;@ --------------------------------------------------------------------
+;@ GameState_11   [00:0576]   47 lines
+;@   reads     : hInMenuOrDemo, hWorldAndLevel
+;@   writes    : hCoins, hNextColumnToLoad, hScoreLeadingZero, rIF, rLCDC, rLYC, rTAC, rTMA
+;@   calls     : Call_5CF, Call_5E7, DisplayCoins, GameState_08, InitLevel, PrepareHUD, UpdateBonusGameTimer, UpdateLives
+;@ --------------------------------------------------------------------
 GameState_11::	; 576
 ; start level
 .entryPoint::
@@ -902,8 +959,8 @@ GameState_11::	; 576
 	ldh [hScoreLeadingZero], a
 	ld a, $5B
 	ldh [hNextColumnToLoad], a
-	call Call_2442		; superfluous? happens in GameState_08.loadWorldTiles?
-	call Call_3D1A		; todo
+	call InitLevel		; superfluous? happens in GameState_08.loadWorldTiles?
+	call UpdateBonusGameTimer		; todo
 	call DisplayCoins
 	call UpdateLives.displayLives
 	ldh a, [hWorldAndLevel]
@@ -939,6 +996,11 @@ CopyData::	; 05DE
 
 ; 5E7
 ; prepare tiles
+;@ --------------------------------------------------------------------
+;@ Call_5E7   [00:05E7]   21 lines
+;@   called by : GameState_08, GameState_11
+;@   calls     : CopyData
+;@ --------------------------------------------------------------------
 Call_5E7::	; the three upper banks have tiles at the same location?
 	ld hl, $5032
 	ld de, $9000
@@ -979,9 +1041,15 @@ PrepareHUD::
 
 ; Normal gameplay. Tons of function calls, let's do this later...
 ;INCBIN "baserom.gb", $0627, $06BC - $0627
-GameState_00::	; 627
-    call Call_2198
-    call Call_84E
+;@ --------------------------------------------------------------------
+;@ GameState_00_Gameplay   [00:0627]   62 lines
+;@   reads     : hActiveRomBank, hSavedRomBank
+;@   writes    : hActiveRomBank, hSavedRomBank, rROMB0
+;@   calls     : AnimateMario, Call_2113, Call_2491, Call_4823, Call_490D, CheckMarioEnemyCollision, CheckMarioTileCollision, Jmp_185D
+;@ --------------------------------------------------------------------
+GameState_00_Gameplay::	; 627
+    call UpdateScrollProgress
+    call CheckMarioEnemyCollision
     ldh  a, [hActiveRomBank]    ; hActiveRomBank = $FFFD
     ldh  [hSavedRomBank], a ; hSavedRomBank = $FFE1
 
@@ -1014,7 +1082,7 @@ GameState_00::	; 627
     ldh  a, [hSavedRomBank] ; hSavedRomBank = $FFE1
     ldh  [hActiveRomBank], a    ; hActiveRomBank = $FFFD
     ld   [rROMB0], a
-    call Call_1F2D
+    call UpdateSuperball
     call Call_2491
     ldh  a, [hActiveRomBank]    ; hActiveRomBank = $FFFD
     ldh  [hSavedRomBank], a ; hSavedRomBank = $FFE1
@@ -1026,11 +1094,11 @@ GameState_00::	; 627
     ldh  [hActiveRomBank], a    ; hActiveRomBank = $FFFD
     ld   [rROMB0], a
     call Jmp_185D.call_198C
-    call Call_16F5
-    call Call_17BC
-    call Call_AEA
-    call Call_A2D
-    call Call_1F03
+    call AnimateMario
+    call CheckMarioTileCollision
+    call UpdateMarioPhysics
+    call SpawnFloatyAtMario
+    call UpdateInvincibility
     ld   hl, $C0CE ; _RAM_C0CE_
     ld   a, [hl]
     and  a
@@ -1041,6 +1109,10 @@ GameState_00::	; 627
 
 
 ; 06BC
+;@ --------------------------------------------------------------------
+;@ GameState_01   [00:06BC]   21 lines
+;@   writes    : hGameState, hSuperStatus, wLivesEarnedLost
+;@ --------------------------------------------------------------------
 GameState_01::
 	ld hl, hTimer
 	ld a, [hl]
@@ -1062,6 +1134,12 @@ GameState_01::
 	ldh [hGameState], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ GameState_02   [00:06DC]   109 lines
+;@   reads     : hLevelIndex, hPipeExitScreen, hUnderground, hWorldAndLevel, wMarioAnimationIndex
+;@   writes    : hGameState, hNextColumnToLoad, hScrollX, hUnderground, rIF, rLCDC, rTMA, wGameTimer
+;@   calls     : Call_165E, Call_1ED4, InitEnemySlots, StartLevelMusic, UpdateLevelColumns
+;@ --------------------------------------------------------------------
 GameState_02::
 	di
 	ld a, 0
@@ -1107,7 +1185,7 @@ GameState_02::
 	ld [hl], 0
 	ld a, c
 	ld [wLevelProgress], a		; "progress" in level, used to spawn enemies?
-	call Call_807		; draw first screen of the level
+	call UpdateLevelColumns		; draw first screen of the level
 	ld hl, $982B		; right next to the coins
 	ld [hl], " "
 	inc l
@@ -1171,6 +1249,13 @@ GameState_02::
 .text_79A
 	db " ♥pause♥ "
 
+;@ --------------------------------------------------------------------
+;@ StartLevelMusic   [00:07A3]   32 lines
+;@   called by : GameState_02, GameState_0B_EnterPipeFromUnderground, UpdateInvincibility
+;@   reads     : hActiveRomBank, hLevelIndex, wInvincibilityTimer
+;@   writes    : rROMB0
+;@   calls     : InitSound
+;@ --------------------------------------------------------------------
 StartLevelMusic::
 	ld a, [wInvincibilityTimer]
 	and a
@@ -1203,6 +1288,13 @@ StartLevelMusic::
 	db 7, 3, 3
 	db 6, 6 ,5
 
+;@ --------------------------------------------------------------------
+;@ pauseOrReset   [00:07DA]   31 lines
+;@   called by : Init
+;@   reads     : hGamePaused, hGameState, hJoyHeld, hJoyPressed
+;@   writes    : hGamePaused, hPauseUnpauseMusic
+;@   calls     : Init
+;@ --------------------------------------------------------------------
 pauseOrReset:: ; 7DA
 	ldh a, [hJoyHeld]
 	and a, $0F
@@ -1234,7 +1326,14 @@ pauseOrReset:: ; 7DA
 	jr .pauseMusic
 
 ; this draw the first screen of the level. The rest is dynamically loaded
-Call_807::
+;@ --------------------------------------------------------------------
+;@ UpdateLevelColumns   [00:0807]   46 lines
+;@   called by : GameState_02, GameState_0A_WarpUnderground, GameState_0B_EnterPipeFromUnderground, GameState_0E, GameState_29
+;@   reads     : hGameState, hLevelIndex, hSuperStatus
+;@   writes    : hNextColumnToLoad, hScrollColumnPhase, wMarioAnimationIndex
+;@   calls     : DrawColumn, LoadNextColumn
+;@ --------------------------------------------------------------------
+UpdateLevelColumns::
 	ld hl, Data_211D
 	ld de, wMarioVisible
 	ld b, $51			; Bug? One byte too much
@@ -1263,7 +1362,7 @@ Call_807::
 	ldh [hNextColumnToLoad], a		; level index of some sort
 	ld b, $14			; an underground level is only 20 tiles wide, no scroll
 	ldh a, [hGameState]
-	cp a, $0A			; pipe going underground
+	cp a, GAMESTATE_WARP_UNDERGROUND			; pipe going underground
 	jr z, .drawLoop
 	ldh a, [hLevelIndex]
 	cp a, $0C			; start menu doesn't scroll
@@ -1280,7 +1379,14 @@ Call_807::
 
 ; called from main gameplay subroutine
 ; player "entity" (enemy, powerup) collision
-Call_84E:: ; 84E
+;@ --------------------------------------------------------------------
+;@ CheckMarioEnemyCollision   [00:084E]   254 lines
+;@   called by : GameState_00_Gameplay, GameState_0D
+;@   reads     : hFloatyControl, hGameState, hStompChain, hStompChainTimer, hSuperStatus, wInvincibilityTimer, wMarioAnimationIndex, wMarioX
+;@   writes    : hFloatyControl, hFloatyX, hFloatyY, hHitboxBottom, hHitboxLeft, hHitboxRight, hHitboxTop, hStompChain
+;@   calls     : Call_2A01, Call_2A44, Call_2B06, Call_A10, ComputeHitbox, InjureMario, KillMario
+;@ --------------------------------------------------------------------
+CheckMarioEnemyCollision:: ; 84E
 	ldh a, [hStompChainTimer]
 	and a
 	jr z, .skip			; don't decrement below zero
@@ -1339,7 +1445,7 @@ Call_84E:: ; 84E
 	ldh [hHitboxRight], a		; BB right
 	pop hl
 	push hl
-	call Call_AAF		; hitbox detection
+	call ComputeHitbox		; hitbox detection
 	and a
 	jp z, .noCollision
 	ldh a, [$FFFC]
@@ -1534,6 +1640,11 @@ Call_84E:: ; 84E
 	ld [wLivesEarnedLost], a
 	jr .positionFloaty
 
+;@ --------------------------------------------------------------------
+;@ InjureMario   [00:09E0]   11 lines
+;@   called by : CheckMarioEnemyCollision, CheckMarioTileCollision
+;@   writes    : hSuperStatus, hSuperballMario, hTimer
+;@ --------------------------------------------------------------------
 InjureMario:: ; 9E0
 	ld a, 3
 	ldh [hSuperStatus], a
@@ -1545,11 +1656,17 @@ InjureMario:: ; 9E0
 	ld [$DFE0], a			; injury music
 	ret
 
+;@ --------------------------------------------------------------------
+;@ KillMario   [00:09F1]   18 lines
+;@   called by : CheckMarioEnemyCollision, CheckMarioTileCollision, Init
+;@   reads     : wMarioY
+;@   writes    : hGameState, hSuperballMario, rTMA, wDeathY, wMarioVisible
+;@ --------------------------------------------------------------------
 KillMario:: ; 9F1
 	ld a, [$D007]
 	and a
 	ret nz
-	ld a, $03				; pre dying
+	ld a, GAMESTATE_PREPARE_DEATH				; pre dying
 	ldh [hGameState], a
 	xor a
 	ldh [hSuperballMario], a; superball capability
@@ -1587,7 +1704,14 @@ Call_A10::
 	db $01, $04, $08, $50
 
 ; called when Mario hits a bouncing block, to hit the enemy above it
-Call_A2D:: ; A2D
+;@ --------------------------------------------------------------------
+;@ SpawnFloatyAtMario   [00:0A2D]   92 lines
+;@   called by : GameState_00_Gameplay
+;@   reads     : wMarioX, wMarioY
+;@   writes    : hFloatyControl, hFloatyX, hFloatyY
+;@   calls     : Call_2A23, Call_A10
+;@ --------------------------------------------------------------------
+SpawnFloatyAtMario:: ; A2D
 	ldh a, [$FFEE]
 	and a
 	ret z
@@ -1679,7 +1803,12 @@ Call_A2D:: ; A2D
 ; T B L R FFA0 FFA1 FFA2 FF8F (-_-)
 ; HL contains D1x0 of enemy under consideration?
 ; C is some sort is width? XY in both nibbles?
-Call_AAF:: ; AAF
+;@ --------------------------------------------------------------------
+;@ ComputeHitbox   [00:0AAF]   51 lines
+;@   called by : Call_200A, CheckMarioEnemyCollision
+;@   reads     : hHitboxBottom, hHitboxLeft, hHitboxRight, hHitboxTop
+;@ --------------------------------------------------------------------
+ComputeHitbox:: ; AAF
 	inc l
 	inc l				; D1x2 Y pos
 	ld a, [hl]
@@ -1730,7 +1859,14 @@ Call_AAF:: ; AAF
 	ret
 
 ; has to do with Mario riding on platforms and blocks
-Call_AEA:: ; AEA
+;@ --------------------------------------------------------------------
+;@ UpdateMarioPhysics   [00:0AEA]   116 lines
+;@   called by : GameState_00_Gameplay
+;@   reads     : hHitboxTop, wMarioJumpStatus, wMarioX, wMarioY
+;@   writes    : hHitboxTop, wMarioY
+;@   calls     : Call_2A01
+;@ --------------------------------------------------------------------
+UpdateMarioPhysics:: ; AEA
 	ld a, [wMarioJumpStatus]		; jump status
 	cp a, 1
 	ret z
@@ -1846,7 +1982,13 @@ Call_AEA:: ; AEA
 	jp .nextEnemy
 
 ; prepare Mario's dying sprite. And some variables
-GameState_03:: ; B8D
+;@ --------------------------------------------------------------------
+;@ GameState_03_PrepareDeath   [00:0B8D]   51 lines
+;@   reads     : wDeathY, wMarioX
+;@   writes    : hGameState, hSuperStatus, wDeathAnimationCounter
+;@   calls     : Call_1ED4
+;@ --------------------------------------------------------------------
+GameState_03_PrepareDeath:: ; B8D
 	ld hl, wOAMBuffer + $0C	; Mario's 4 objects todo
 	ld a, [wDeathY]		; death Y position?
 	ld c, a
@@ -1887,7 +2029,7 @@ GameState_03:: ; B8D
 	ld [hl], $1F		; bottom dying object
 	inc l
 	ld [hl], $20		; OAM X flip
-	ld a, $04			; dying animation
+	ld a, GAMESTATE_DEATH_ANIMATION			; dying animation
 	ldh [hGameState], a
 	xor a
 	ld [wDeathAnimationCounter], a
@@ -1897,7 +2039,12 @@ GameState_03:: ; B8D
 	ret
 
 ; Dying animation
-GameState_04:: ; BD6
+;@ --------------------------------------------------------------------
+;@ GameState_04_DeathAnimation   [00:0BD6]   43 lines
+;@   reads     : wDeathAnimationCounter, wGameTimerExpiringFlag
+;@   writes    : hGameState, hTimer, wDeathAnimationCounter
+;@ --------------------------------------------------------------------
+GameState_04_DeathAnimation:: ; BD6
 	ld a, [wDeathAnimationCounter]		; death animation counter
 	ld e, a				; use DE as an offset in the table
 	inc a
@@ -1944,7 +2091,13 @@ Data_C19::
 	db -2, -2, -2, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, 0, -1, 0, 0, -1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, $7F
 
 ; end of level gate, music
-GameState_07:: ; C40
+;@ --------------------------------------------------------------------
+;@ GameState_07_LevelEndGate   [00:0C40]   32 lines
+;@   reads     : hWorldAndLevel
+;@   writes    : hGameState, hTimer, rTMA, wGameTimerExpiringFlag
+;@   calls     : Call_1736, ExplodeAllEnemies
+;@ --------------------------------------------------------------------
+GameState_07_LevelEndGate:: ; C40
 	ld hl, hTimer
 	ld a, [hl]
 	and a
@@ -1958,7 +2111,7 @@ GameState_07:: ; C40
 	ld a, $40
 	ldh [hTimer], a
 .jmp_C55
-	ld a, $05				; score counting down
+	ld a, GAMESTATE_LEVEL_CLEAR_SCORING				; score counting down
 	ldh [hGameState], a
 	xor a
 	ld [wGameTimerExpiringFlag], a
@@ -1971,12 +2124,18 @@ GameState_07:: ; C40
 	ldh a, [hWorldAndLevel]
 	cp a, $43				; last level
 	ret nz
-	ld a, $06				; don't count down score after Tatanga
+	ld a, GAMESTATE_LEVEL_WON				; don't count down score after Tatanga
 	ldh [hGameState], a
 	ret
 
 ; explode enemies, count down timer and add to score
-GameState_05:: ; C73
+;@ --------------------------------------------------------------------
+;@ GameState_05_LevelClearScoring   [00:0C73]   43 lines
+;@   reads     : hTimer, hWorldAndLevel, wGameTimer
+;@   writes    : hGameState, hTimer, wGameTimer, wGameTimerExpiringFlag, wLevelProgress
+;@   calls     : AddScore, Call_2491, UpdateTimerAndFloaties
+;@ --------------------------------------------------------------------
+GameState_05_LevelClearScoring:: ; C73
 	ldh a, [hWorldAndLevel]
 	and a, $0F
 	cp a, 3
@@ -2012,14 +2171,20 @@ GameState_05:: ; C73
 	ret
 
 .endLevel
-	ld a, $06
+	ld a, GAMESTATE_LEVEL_WON
 	ldh [hGameState], a
 	ld a, $26
 	ldh [hTimer], a
 	ret
 
 ; Winning
-GameState_06:: ; CCB
+;@ --------------------------------------------------------------------
+;@ GameState_06_LevelWon   [00:0CCB]   66 lines
+;@   reads     : hTimer, hWorldAndLevel, wMarioY
+;@   writes    : hActiveRomBank, hGameState, hScrollColumnPhase, hTimer, rROMB0, rTMA, wGameTimerExpiringFlag
+;@   calls     : InitSound
+;@ --------------------------------------------------------------------
+GameState_06_LevelWon:: ; CCB
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2080,11 +2245,18 @@ GameState_06:: ; CCB
 	ldh [$FFFC], a
 	ld a, $FF
 	ldh [hTimer], a
-	ld a, $27			; tatanga dying
+	ld a, GAMESTATE_REMOVE_BLOCKS			; tatanga dying
 	ldh [hGameState], a
 	call InitSound
 	ret
 
+;@ --------------------------------------------------------------------
+;@ GameState_08   [00:0D39]   130 lines
+;@   called by : GameState_11
+;@   reads     : hLevelIndex, hWorldAndLevel, wCurrentlyPlayingSound
+;@   writes    : hActiveRomBank, hGameState, hLevelIndex, hScreenIndex, hUnderground, hWorldAndLevel, rIF, rLCDC
+;@   calls     : Call_5E7, InitLevel
+;@ --------------------------------------------------------------------
 GameState_08:: ; D49
 .world1Tiles
 	di
@@ -2205,7 +2377,7 @@ GameState_08:: ; D49
 	ldh [hUnderground], a
 	ld a, $02
 	ldh [hGameState], a
-	call Call_2442
+	call InitLevel
 	ret
 
 ; todo
@@ -2215,7 +2387,12 @@ GameState_08:: ; D49
 	dw $4402, $4402, $4BC2
 
 ; leaving bonus game?
-GameState_1B:: ; DF9
+;@ --------------------------------------------------------------------
+;@ GameState_1B_LeaveBonusGame   [00:0DF9]   17 lines
+;@   writes    : hGameState, hScoreLeadingZero, rIF, rLCDC
+;@   calls     : DisplayCoins, PrepareHUD, UpdateLives
+;@ --------------------------------------------------------------------
+GameState_1B_LeaveBonusGame:: ; DF9
 	di
 	xor a
 	ldh [rLCDC], a	; turn off lcd
@@ -2232,6 +2409,12 @@ GameState_1B:: ; DF9
 	ldh [hScoreLeadingZero], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ GameState_1C   [00:0E15]   18 lines
+;@   reads     : hTimer
+;@   writes    : hTimer, wLevelProgress
+;@   calls     : Call_1736, Call_2491, LoadNextColumn
+;@ --------------------------------------------------------------------
 GameState_1C:: ; E15
 	ldh a, [hTimer]		; wait 6 frames
 	and a
@@ -2250,6 +2433,12 @@ GameState_1C:: ; E15
 	inc [hl]
 	ret					; 1C → 1D
 
+;@ --------------------------------------------------------------------
+;@ GameState_1D   [00:0E31]   28 lines
+;@   reads     : hTimer
+;@   writes    : hTimer, wLevelProgress
+;@   calls     : Call_2491
+;@ --------------------------------------------------------------------
 GameState_1D:: ; E31
 	xor a
 	ld [wLevelProgress], a
@@ -2278,7 +2467,13 @@ GameState_1D:: ; E31
 	ret
 
 ; Open gate
-GameState_1E:: ; E5D
+;@ --------------------------------------------------------------------
+;@ GameState_1E_OpenGate   [00:0E5D]   36 lines
+;@   reads     : hTimer, rSTAT
+;@   writes    : hActiveRomBank, hTimer, rROMB0
+;@   calls     : InitSound
+;@ --------------------------------------------------------------------
+GameState_1E_OpenGate:: ; E5D
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2314,7 +2509,12 @@ GameState_1E:: ; E5D
 	ret
 
 ; gate is open
-GameState_1F:: ; E96
+;@ --------------------------------------------------------------------
+;@ GameState_1F_GateOpen   [00:0E96]   14 lines
+;@   reads     : hTimer
+;@   writes    : hUnderground, wLevelEndCounter, wMarioJumpStatus
+;@ --------------------------------------------------------------------
+GameState_1F_GateOpen:: ; E96
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2328,7 +2528,14 @@ GameState_1F:: ; E96
 	ret
 
 ; Mario walks/flies off screen
-GameState_28::
+GameState_28_MarioExitsScreen::
+;@ --------------------------------------------------------------------
+;@ GameState_20   [00:0EA9]   22 lines
+;@   called by : GameState_2E_MarioAndDaisyWalking
+;@   reads     : wMarioAnimationIndex, wMarioX
+;@   writes    : hJoyHeld, hTimer
+;@   calls     : AnimateMario, CheckMarioTileCollision
+;@ --------------------------------------------------------------------
 GameState_20:: ; EA9
 	call .walkRight
 	ld a, [wMarioX]		; mario on screen X
@@ -2346,12 +2553,18 @@ GameState_20:: ; EA9
 	ld a, [wMarioAnimationIndex]		; animation index
 	and a, $0F
 	cp a, $0A			; animations >= $0A are sub or airplane
-	call c, Call_17BC
-	call Call_16F5		; animate and move mario
+	call c, CheckMarioTileCollision
+	call AnimateMario		; animate and move mario
 	ret
 
 ; preparing Fake Daisy
-GameState_21:: ; ECD
+;@ --------------------------------------------------------------------
+;@ GameState_21_PrepareFakeDaisy   [00:0ECD]   47 lines
+;@   called by : GameState_29
+;@   reads     : hTimer
+;@   writes    : hColumnLoadRequest, hScrollColumnPhase, hTimer
+;@ --------------------------------------------------------------------
+GameState_21_PrepareFakeDaisy:: ; ECD
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2398,13 +2611,20 @@ GameState_21:: ; ECD
 
 
 ; scroll the screen
-GameState_22:: ; F12
+;@ --------------------------------------------------------------------
+;@ GameState_22_ScrollScreen   [00:0F12]   22 lines
+;@   called by : GameState_23
+;@   reads     : hTimer
+;@   writes    : hLevelIndex
+;@   calls     : Call_1736, UpdateScrollProgress
+;@ --------------------------------------------------------------------
+GameState_22_ScrollScreen:: ; F12
 	ldh a, [hTimer]
 	and a
 	jr z, .nextState
 	ld hl, hScrollX
 	inc [hl]
-	call Call_2198		; loads in columns?
+	call UpdateScrollProgress		; loads in columns?
 	ld hl, wMarioX		; mario x pos
 	dec [hl]
 	ld hl, $C212		; fake daisy x pos
@@ -2420,11 +2640,17 @@ GameState_22:: ; F12
 	inc [hl]			; 22 → 23
 	ret
 
+;@ --------------------------------------------------------------------
+;@ GameState_23   [00:0F33]   31 lines
+;@   reads     : wMarioAnimationIndex, wMarioX
+;@   writes    : hJoyHeld, hTextCursorHi, hTextCursorLo, wMarioAnimationIndex
+;@   calls     : AnimateMario, CheckMarioTileCollision, GameState_22_ScrollScreen
+;@ --------------------------------------------------------------------
 GameState_23:: ; F33
 	ld a, $10			; right button
 	ldh [hJoyHeld], a
-	call Call_17BC
-	call Call_16F5
+	call CheckMarioTileCollision
+	call AnimateMario
 	ld a, [wMarioX]
 	cp a, $4C			; almost middle of screen
 	ret c
@@ -2448,10 +2674,15 @@ GameState_23:: ; F33
 	ldh [$FFFB], a
 	ld hl, hGameState
 	inc [hl]
-	jr GameState_22.animateMarioAndReturn
+	jr GameState_22_ScrollScreen.animateMarioAndReturn
 
 ; Fake Daisy speaking
-GameState_24:: ; F6A
+;@ --------------------------------------------------------------------
+;@ GameState_24_FakeDaisySpeaking   [00:0F6A]   17 lines
+;@   writes    : hTimer
+;@   calls     : PrintVictoryMessage
+;@ --------------------------------------------------------------------
+GameState_24_FakeDaisySpeaking:: ; F6A
 	ld hl, Text_FE1
 	call PrintVictoryMessage
 	cp a, $FF		; end of speech
@@ -2468,6 +2699,12 @@ GameState_24:: ; F6A
 	ld [$DFE8], a	; music
 	ret
 
+;@ --------------------------------------------------------------------
+;@ PrintVictoryMessage   [00:0F8A]   62 lines
+;@   called by : GameState_24_FakeDaisySpeaking, GameState_2A, GameState_2B_DaisyApproaching, GameState_2D_QuestOver
+;@   reads     : hTextCursorHi, hTextCursorLo, hTimer
+;@   writes    : hTextCursorHi, hTextCursorLo, hTimer
+;@ --------------------------------------------------------------------
 PrintVictoryMessage:: ; F8A
 	ldh a, [hTimer]
 	and a
@@ -2535,7 +2772,12 @@ Text_FE1:
 	db "oh! daisy", $FF
 
 ; Fake Daisy morphing
-GameState_25:: ; FFD
+;@ --------------------------------------------------------------------
+;@ GameState_25_FakeDaisyMorphing   [00:0FFD]   51 lines
+;@   reads     : hTimer
+;@   writes    : hTimer
+;@ --------------------------------------------------------------------
+GameState_25_FakeDaisyMorphing:: ; FFD
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2586,7 +2828,13 @@ GameState_25:: ; FFD
 	db $80, $60, $07, $60
 
 ; Fake Daisy monster jumping away
-GameState_26:: ; 1055
+;@ --------------------------------------------------------------------
+;@ GameState_26_FakeDaisyEscaping   [00:1055]   45 lines
+;@   reads     : hFrameCounter, hTimer
+;@   writes    : hActiveRomBank, hTimer, rROMB0
+;@   calls     : Call_1736
+;@ --------------------------------------------------------------------
+GameState_26_FakeDaisyEscaping:: ; 1055
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2631,7 +2879,13 @@ GameState_26:: ; 1055
 ; the blocks are removed by a constantly rotating bitmask ANDed with the tiles
 ; the bitmask goes
 ; 10111111 → 11100111 → 11101100 → 10001101 → 10100001 → 00100100 → 1000010 → 1000000
-GameState_27::	; 1099
+;@ --------------------------------------------------------------------
+;@ GameState_27_RemoveBlocks   [00:1099]   73 lines
+;@   reads     : hTimer, wScrollY
+;@   writes    : hTimer, hUnderground, wLevelEndCounter, wLevelProgress, wScrollY
+;@   calls     : Call_2491
+;@ --------------------------------------------------------------------
+GameState_27_RemoveBlocks::	; 1099
 	ldh a, [$FFA7]
 	and a
 	jr nz, .screenShake
@@ -2704,6 +2958,11 @@ GameState_27::	; 1099
 	inc [hl]			; 27 → 28
 	ret
 
+;@ --------------------------------------------------------------------
+;@ GameState_29   [00:1116]   41 lines
+;@   writes    : hScrollX, hTextCursorHi, hTextCursorLo, hUnderground, rIF, rLCDC, wScrollY
+;@   calls     : Call_1736, EraseTileMap, GameState_21_PrepareFakeDaisy, UpdateLevelColumns
+;@ --------------------------------------------------------------------
 GameState_29:: ; 1116
 	di
 	xor a
@@ -2712,8 +2971,8 @@ GameState_29:: ; 1116
 	ld hl, $9C00
 	ld bc, $0100
 	call EraseTileMap
-	call Call_807.drawLevel
-	call GameState_21.prepareMarioAndDaisy
+	call UpdateLevelColumns.drawLevel
+	call GameState_21_PrepareFakeDaisy.prepareMarioAndDaisy
 	ld hl, wMarioX		; mario X position
 	ld [hl], $38
 	inc l
@@ -2745,6 +3004,11 @@ GameState_29:: ; 1116
 	inc [hl]			; 29 → 2A
 	ret
 
+;@ --------------------------------------------------------------------
+;@ GameState_2A   [00:1165]   21 lines
+;@   writes    : hTextCursorHi, hTextCursorLo
+;@   calls     : PrintVictoryMessage
+;@ --------------------------------------------------------------------
 GameState_2A:: ; 1165
 	ld hl, .text_1183
 	call PrintVictoryMessage
@@ -2766,7 +3030,12 @@ GameState_2A:: ; 1165
 	db "oh! daisy", $FE, $1B, "daisy", $FF
 
 ; Daisy running towards Mario
-GameState_2B:: ; 1194
+;@ --------------------------------------------------------------------
+;@ GameState_2B_DaisyApproaching   [00:1194]   31 lines
+;@   reads     : hFrameCounter
+;@   calls     : Call_1736, PrintVictoryMessage
+;@ --------------------------------------------------------------------
+GameState_2B_DaisyApproaching:: ; 1194
 	ld hl, .text_11BF
 	call PrintVictoryMessage
 	ldh a, [hFrameCounter]
@@ -2797,7 +3066,12 @@ GameState_2B:: ; 1194
 	db "thank you mario.", $FF
 
 ; kiss ^_^
-GameState_2C:: ; 11D0
+;@ --------------------------------------------------------------------
+;@ GameState_2C_DaisyKiss   [00:11D0]   49 lines
+;@   reads     : hFrameCounter
+;@   writes    : hTextCursorHi, hTextCursorLo
+;@ --------------------------------------------------------------------
+GameState_2C_DaisyKiss:: ; 11D0
 	ldh a, [hFrameCounter]
 	and a, %1
 	ret nz
@@ -2846,7 +3120,11 @@ GameState_2C:: ; 11D0
 	ret
 
 ; your quest is over
-GameState_2D:: ; 121B
+;@ --------------------------------------------------------------------
+;@ GameState_2D_QuestOver   [00:121B]   26 lines
+;@   calls     : PrintVictoryMessage
+;@ --------------------------------------------------------------------
+GameState_2D_QuestOver:: ; 121B
 	ld hl, .text_123F
 	call PrintVictoryMessage
 	cp a, $FF
@@ -2872,7 +3150,13 @@ GameState_2D:: ; 121B
 	db "-your quest is over-", $FF
 
 ; Mario & Daisy walking
-GameState_2E::
+;@ --------------------------------------------------------------------
+;@ GameState_2E_MarioAndDaisyWalking   [00:1254]   49 lines
+;@   reads     : hColumnIndex, hFrameCounter, hScreenIndex
+;@   writes    : hTimer, wMarioVisible
+;@   calls     : GameState_20, UpdateScrollProgress
+;@ --------------------------------------------------------------------
+GameState_2E_MarioAndDaisyWalking::
 	ldh a, [hFrameCounter]
 	and a, $03
 	jr nz, .jmp_1261
@@ -2906,7 +3190,7 @@ GameState_2E::
 	inc [hl]			; 2E → 2F
 .walkMarioDaisy
 	call GameState_20.walkRight
-	call Call_2198		; level rendering
+	call UpdateScrollProgress		; level rendering
 	ldh a, [hScreenIndex]
 	cp a, $03
 	ret nz
@@ -2921,7 +3205,11 @@ GameState_2E::
 	ret
 
 ; prepare for liftoff
-GameState_2F:: ; 12A1
+;@ --------------------------------------------------------------------
+;@ GameState_2F_PrepareLiftoff   [00:12A1]   21 lines
+;@   reads     : hTimer
+;@ --------------------------------------------------------------------
+GameState_2F_PrepareLiftoff:: ; 12A1
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -2942,6 +3230,12 @@ GameState_2F:: ; 12A1
 	inc [hl]			; 2F → 30
 	ret
 
+;@ --------------------------------------------------------------------
+;@ GameState_30   [00:12C2]   33 lines
+;@   called by : GameState_31
+;@   reads     : hFrameCounter
+;@   calls     : Call_1736
+;@ --------------------------------------------------------------------
 GameState_30:: ; 12C2
 	call Call_1736		; animate "Mario" (spaceship)
 	ldh a, [hFrameCounter]
@@ -2975,9 +3269,16 @@ GameState_30:: ; 12C2
 	ld [hl], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ GameState_31   [00:12F1]   91 lines
+;@   called by : AnimateSpaceshipAndClouds, GameState_32
+;@   reads     : hNextColumnToLoad, hScrollX, wCurrentSong
+;@   writes    : hColumnLoadRequest, hNextColumnToLoad, hScrollX, rLYC
+;@   calls     : Call_1736, GameState_30, UpdateScrollProgress
+;@ --------------------------------------------------------------------
 GameState_31:: ; 12F1
 	call .animateSpaceship
-	call Call_2198		; loads level
+	call UpdateScrollProgress		; loads level
 	ldh a, [hScrollX]
 	inc a
 	call z, .call_1318
@@ -3066,6 +3367,12 @@ GameState_31:: ; 12F1
 .data_1389
 	db $80, $40, $70, $29, $80
 
+;@ --------------------------------------------------------------------
+;@ GameState_32   [00:138E]   34 lines
+;@   reads     : hScrollColumnPhase, hScrollX
+;@   writes    : hScrollColumnPhase, hScrollX, hTextCursorHi, hTextCursorLo, hTimer, rLYC
+;@   calls     : AnimateSpaceshipAndClouds, GameState_31
+;@ --------------------------------------------------------------------
 GameState_32:: ; 138E
 	call AnimateSpaceshipAndClouds
 	ldh a, [hScrollX]
@@ -3100,6 +3407,13 @@ GameState_32:: ; 138E
 	ret
 
 
+;@ --------------------------------------------------------------------
+;@ GameState_33   [00:13C4]   89 lines
+;@   called by : AnimateSpaceshipAndClouds
+;@   reads     : hTextCursorHi, hTextCursorLo, hTimer, rDIV
+;@   writes    : hTextCursorHi, hTextCursorLo
+;@   calls     : AnimateSpaceshipAndClouds
+;@ --------------------------------------------------------------------
 GameState_33:: ; 13C4
 .animateClouds
 	ld hl, $C212	; clouds X pos
@@ -3189,7 +3503,13 @@ GameState_33:: ; 13C4
 	ret
 
 ; credits entering
-GameState_34::
+;@ --------------------------------------------------------------------
+;@ GameState_34_CreditsEnter   [00:1441]   17 lines
+;@   reads     : hFrameCounter
+;@   writes    : hTimer
+;@   calls     : AnimateSpaceshipAndClouds
+;@ --------------------------------------------------------------------
+GameState_34_CreditsEnter::
 	call AnimateSpaceshipAndClouds
 	ldh a, [hFrameCounter]
 	and a, 3
@@ -3206,6 +3526,11 @@ GameState_34::
 	ret
 
 
+;@ --------------------------------------------------------------------
+;@ GameState_35   [00:145A]   10 lines
+;@   reads     : hTimer
+;@   calls     : AnimateSpaceshipAndClouds
+;@ --------------------------------------------------------------------
 GameState_35:: ; 145A
 	call AnimateSpaceshipAndClouds
 	ldh a, [hTimer]
@@ -3216,7 +3541,13 @@ GameState_35:: ; 145A
 	ret
 
 ; scroll credits up, out of sight
-GameState_36:: ; 1466
+;@ --------------------------------------------------------------------
+;@ GameState_36_CreditsScrollOut   [00:1466]   22 lines
+;@   reads     : hFrameCounter
+;@   writes    : hGameState, wScrollY
+;@   calls     : AnimateSpaceshipAndClouds
+;@ --------------------------------------------------------------------
+GameState_36_CreditsScrollOut:: ; 1466
 	call AnimateSpaceshipAndClouds
 	ldh a, [hFrameCounter]
 	and a, 3
@@ -3238,7 +3569,13 @@ GameState_36:: ; 1466
 	ret
 
 ; spaceship flies off, prepare "THE END"
-GameState_37::
+;@ --------------------------------------------------------------------
+;@ GameState_37_SpaceshipDeparts   [00:1488]   47 lines
+;@   reads     : hWinCount
+;@   writes    : hTimer, hWinCount, wWinCount
+;@   calls     : AnimateSpaceshipAndClouds, Call_1736
+;@ --------------------------------------------------------------------
+GameState_37_SpaceshipDeparts::
 	call AnimateSpaceshipAndClouds
 	ld hl, wMarioX		; X position
 	inc [hl]
@@ -3285,6 +3622,13 @@ GameState_37::
 	db $4E, $F4, $55, 00 ; N
 	db $4E, $FC, $56, 00 ; D
 
+;@ --------------------------------------------------------------------
+;@ GameState_38   [00:14DC]   67 lines
+;@   called by : GameState_3A_GameOver
+;@   reads     : hJoyPressed, hTimer
+;@   writes    : hActiveRomBank, hGameState, hLevelIndex, hSuperStatus, hSuperballMario, hWorldAndLevel, rIE, rROMB0
+;@   calls     : AnimateSpaceshipAndClouds, InitSound
+;@ --------------------------------------------------------------------
 GameState_38::
 	call AnimateSpaceshipAndClouds
 	ldh a, [hTimer]
@@ -3383,22 +3727,32 @@ Text_1557:
 	db $FF
 
 ; go down pipe
-GameState_09:: ; 161B
+;@ --------------------------------------------------------------------
+;@ GameState_09_EnterPipe   [00:161B]   15 lines
+;@   writes    : hGameState, hUnderground
+;@   calls     : AnimateMario
+;@ --------------------------------------------------------------------
+GameState_09_EnterPipe:: ; 161B
 	ld hl, wMarioY		; Mario Y position
 	ldh a, [$FFF8]		; Y position of block under pipe? Y target at least
 	cp [hl]
 	jr z, .toUnderground
 	inc [hl]			; Y coord increases going down
-	call Call_16F5		; animate or so
+	call AnimateMario		; animate or so
 	ret
 .toUnderground
-	ld a, $0A
+	ld a, GAMESTATE_WARP_UNDERGROUND
 	ldh [hGameState], a	; warp to underground
 	ldh [hUnderground], a
 	ret
 
 ; warp to underground
-GameState_0A:: ; 162F
+;@ --------------------------------------------------------------------
+;@ GameState_0A_WarpUnderground   [00:162F]   28 lines
+;@   writes    : hColumnIndex, hGameState, hScreenIndex, hScrollX, rIF, rLCDC
+;@   calls     : Call_165E, Call_1ED4, InitEnemySlots, UpdateLevelColumns
+;@ --------------------------------------------------------------------
+GameState_0A_WarpUnderground:: ; 162F
 	di
 	xor a
 	ldh [rLCDC], a
@@ -3407,7 +3761,7 @@ GameState_0A:: ; 162F
 	call Call_165E
 	ldh a, [$FFF4]
 	ldh [hScreenIndex], a
-	call Call_807		; draws the first screen of the "level"
+	call UpdateLevelColumns		; draws the first screen of the "level"
 	call InitEnemySlots
 	ld hl, wMarioY		; Mario Y position
 	ld [hl], $20		; up high
@@ -3439,7 +3793,13 @@ Call_165E: ; 165E
 	ret
 
 ; going in pipe out of underground
-GameState_0B:: ; 166C
+;@ --------------------------------------------------------------------
+;@ GameState_0B_EnterPipeFromUnderground   [00:166C]   67 lines
+;@   reads     : hFrameCounter, hPipeExitScreen, hScreenIndex
+;@   writes    : hColumnIndex, hGameState, hNextColumnToLoad, hScreenIndex, hScrollX, rIF, rLCDC, wLevelProgress
+;@   calls     : AnimateMario, Call_165E, Call_1ED4, InitEnemySlots, StartLevelMusic, UpdateLevelColumns
+;@ --------------------------------------------------------------------
+GameState_0B_EnterPipeFromUnderground:: ; 166C
 	ldh a, [hFrameCounter]
 	and a, $01			; slow down mario by half
 	ret z
@@ -3450,7 +3810,7 @@ GameState_0B:: ; 166C
 	inc [hl]
 	ld hl, wMarioAnimationFrameCounter		; how many frames a direction is held. For animation?
 	inc [hl]
-	call Call_16F5		; animate mario?
+	call AnimateMario		; animate mario?
 	ret
 
 .toOverworld
@@ -3469,7 +3829,7 @@ GameState_0B:: ; 166C
 	ldh a, [$FFF6]
 	ld e, a
 	push de
-	call Call_807		; draw the level
+	call UpdateLevelColumns		; draw the level
 	pop de
 	ld a, $80
 	ld [wMarioHasControl], a
@@ -3499,14 +3859,20 @@ GameState_0B:: ; 166C
 	call Call_1ED4		; clears objects
 	ld a, (LCDCF_ON | LCDCF_WIN9C00 | LCDCF_OBJON | LCDCF_BGON); $C3
 	ldh [rLCDC], a
-	ld a, $0C
+	ld a, GAMESTATE_EMERGE_FROM_PIPE
 	ldh [hGameState], a
 	call StartLevelMusic
 	ei
 	ret
 
 ; coming up out of pipe
-GameState_0C:: ; 16DA
+;@ --------------------------------------------------------------------
+;@ GameState_0C_EmergeFromPipe   [00:16DA]   18 lines
+;@   reads     : hFrameCounter
+;@   writes    : hGameState, hUnderground, wMarioHasControl
+;@   calls     : AnimateMario
+;@ --------------------------------------------------------------------
+GameState_0C_EmergeFromPipe:: ; 16DA
 	ldh a, [hFrameCounter]
 	and a, $01				; slow down animation by 2
 	ret z
@@ -3515,7 +3881,7 @@ GameState_0C:: ; 16DA
 	cp [hl]
 	jr z, .outOfPipe
 	dec [hl]				; Y coordinate decrease going up
-	call Call_16F5			; animate?
+	call AnimateMario			; animate?
 	ret
 .outOfPipe
 	xor a
@@ -3524,7 +3890,13 @@ GameState_0C:: ; 16DA
 	ldh [hUnderground], a
 	ret
 
-Call_16F5:: ; 16F5 Animate mario?
+;@ --------------------------------------------------------------------
+;@ AnimateMario   [00:16F5]   39 lines
+;@   called by : GameState_00_Gameplay, GameState_09_EnterPipe, GameState_0B_EnterPipeFromUnderground, GameState_0C_EmergeFromPipe, GameState_20, GameState_23
+;@   reads     : wMarioAnimationIndex, wMarioOnGround, wMarioWalkRunSpeed
+;@   calls     : Call_1736, Call_1D26
+;@ --------------------------------------------------------------------
+AnimateMario:: ; 16F5 Animate mario?
 	call Call_1736
 	ld a, [wMarioOnGround]			; 1 if mario on the ground
 	and a
@@ -3563,6 +3935,11 @@ Call_16F5:: ; 16F5 Animate mario?
 	jr .jmp_1716
 
 ; animate mario?
+;@ --------------------------------------------------------------------
+;@ Call_1736   [00:1736]   14 lines
+;@   called by : AnimateMario, GameState_07_LevelEndGate, GameState_0D, GameState_1C, GameState_22_ScrollScreen, GameState_26_FakeDaisyEscaping
+;@   writes    : hHitboxRight
+;@ --------------------------------------------------------------------
 Call_1736::
 	ld a, $0C
 	ldh [$FF8E], a	; oh joy, new variables..
@@ -3577,6 +3954,12 @@ Call_1736::
 	ret
 
 ; standing on boss switch
+;@ --------------------------------------------------------------------
+;@ Jmp_175B   [00:175B]   7 lines
+;@   called by : CheckMarioTileCollision
+;@   reads     : hGameState
+;@   calls     : Jmp_1B45
+;@ --------------------------------------------------------------------
 Jmp_175B:: ; 175B
 	ldh a, [hGameState]
 	cp a, $0E
@@ -3584,6 +3967,13 @@ Jmp_175B:: ; 175B
 	jp Jmp_1B45				; Mario wins
 
 ; Called every frame when standing on a pipe?
+;@ --------------------------------------------------------------------
+;@ Jmp_1765   [00:1765]   57 lines
+;@   called by : CheckMarioTileCollision
+;@   reads     : hJoyHeld, hScrollX, wInvincibilityTimer
+;@   writes    : hGameState, hTilemapAddrHi
+;@   calls     : Call_1ED4, Call_3F13, Jmp_185D
+;@ --------------------------------------------------------------------
 Jmp_1765:: ; 1765
 	ldh a, [hJoyHeld]
 	bit 7, a
@@ -3629,7 +4019,7 @@ Jmp_1765:: ; 1765
 	ldi [hl], a
 	inc l
 	ld [hl], $80
-	ld a, $09
+	ld a, GAMESTATE_ENTER_PIPE
 	ldh [hGameState], a		; go down pipe
 	ld a, [wInvincibilityTimer]
 	and a
@@ -3641,7 +4031,14 @@ Jmp_1765:: ; 1765
 	jp Jmp_185D
 
 ; called every frame?
-Call_17BC:: ; 17BC
+;@ --------------------------------------------------------------------
+;@ CheckMarioTileCollision   [00:17BC]   97 lines
+;@   called by : GameState_00_Gameplay, GameState_20, GameState_23
+;@   reads     : hScrollX, hSuperStatus, wInvincibilityTimer, wMarioJumpStatus, wMarioWalkRunSpeed
+;@   writes    : wMarioWalkRunSpeed
+;@   calls     : InjureMario, Jmp_175B, Jmp_1765, Jmp_185D, KillMario, LookupTile
+;@ --------------------------------------------------------------------
+CheckMarioTileCollision:: ; 17BC
 	ld hl, wMarioJumpStatus			; jump status
 	ld a, [hl]
 	cp a, $01
@@ -3738,6 +4135,13 @@ Call_17BC:: ; 17BC
 	ld [$DFE0], a			; coin sound
 	jr .jmp_1801
 
+;@ --------------------------------------------------------------------
+;@ Jmp_185D   [00:185D]   329 lines
+;@   called by : CheckMarioTileCollision, GameState_00_Gameplay, Jmp_1765
+;@   reads     : hHitboxTop, hScrollX, hSuperStatus, wMarioJumpStatus, wMarioX, wMarioY
+;@   writes    : hEnemyX, hEnemyY, hFloatyControl, hFloatyX, hFloatyY, hHitboxTop, hTilemapAddrHi, wMarioJumpStatus
+;@   calls     : AddScore, Call_1A6B, Call_254D, Call_3F13, LookupTile
+;@ --------------------------------------------------------------------
 Jmp_185D:
 	ld hl, wMarioY
 	ld a, [hl]
@@ -4067,6 +4471,11 @@ Jmp_185D:
 
 ; Clears A if it's a solid block that does not have side or top collision,
 ; but can be stood upon, like a platform. Semi-solid platform
+;@ --------------------------------------------------------------------
+;@ Call_1A6B   [00:1A6B]   55 lines
+;@   called by : Call_1AAD, Jmp_185D
+;@   reads     : hWorldAndLevel
+;@ --------------------------------------------------------------------
 Call_1A6B:: ; 1A6B
 	push hl
 	push af
@@ -4122,6 +4531,13 @@ Call_1A6B:: ; 1A6B
 	db $7C, $FD						; ???? World 5?? Bug?
 
 ; detects collision with environment, but only left and right?
+;@ --------------------------------------------------------------------
+;@ Call_1AAD   [00:1AAD]   99 lines
+;@   called by : Call_1D26, UpdateEnemies
+;@   reads     : hGameState, hScrollX, hSuperStatus, hUnderground, wMarioAnimationIndex, wMarioFacing
+;@   writes    : hGameState, wMarioHasControl, wMarioWalkRunSpeed
+;@   calls     : Call_1A6B, Call_1ED4, Jmp_1B45, LookupTile
+;@ --------------------------------------------------------------------
 Call_1AAD:: ; 1AAD
 	ldh a, [hGameState]
 	cp a, $0E
@@ -4204,7 +4620,7 @@ Call_1AAD:: ; 1AAD
 	ldh a, [hUnderground]
 	and a
 	jr z, .stopMario		; do nothing if we're not underground
-	ld a, $0B
+	ld a, GAMESTATE_ENTER_PIPE_FROM_UG
 	ldh [hGameState], a
 	ld a, $80
 	ld [wMarioHasControl], a		; mario in control?
@@ -4221,6 +4637,13 @@ Call_1AAD:: ; 1AAD
 	ret
 
 ; makes Mario win?
+;@ --------------------------------------------------------------------
+;@ Jmp_1B45   [00:1B45]   39 lines
+;@   called by : Call_1AAD, Call_1D26, Call_5089, Call_50CC, GameState_0D, Jmp_175B
+;@   reads     : hSuperStatus, wMarioAnimationIndex
+;@   writes    : hGameState, hSuperStatus, hTimer, rTMA, wGameTimerExpiringFlag, wMarioAnimationIndex, wMarioVisible
+;@   calls     : Call_1ED4
+;@ --------------------------------------------------------------------
 Jmp_1B45:: ; 1B45
 	ldh a, [hSuperStatus]
 	cp a, $02			; fully grown Super Mario
@@ -4241,7 +4664,7 @@ Jmp_1B45:: ; 1B45
 	and a, $F0
 	ld [wMarioAnimationIndex], a
 .jmp_1B66
-	ld a, $07			; end of level with music?
+	ld a, GAMESTATE_LEVEL_END_GATE			; end of level with music?
 	ldh [hGameState], a
 	ld a, [$D007]
 	and a
@@ -4260,7 +4683,14 @@ Jmp_1B45:: ; 1B45
 
 ; collision with blocks and coins
 ; called every frame
-Call_1B86:: ; 1B86
+;@ --------------------------------------------------------------------
+;@ UpdateFloatySprites   [00:1B86]   79 lines
+;@   called by : VBlank
+;@   reads     : hScrollX, wOAMBuffer
+;@   writes    : hFloatyControl, hFloatyX, hFloatyY, hTilemapAddrHi
+;@   calls     : AddCoin, Call_3F13
+;@ --------------------------------------------------------------------
+UpdateFloatySprites:: ; 1B86
 	xor a
 	ld [$C0E2], a
 	ldh a, [$FFFE]
@@ -4339,6 +4769,13 @@ Call_1B86:: ; 1B86
 	ret
 
 ; add one coin. Earns a life is 100 are collected
+;@ --------------------------------------------------------------------
+;@ AddCoin   [00:1BFF]   18 lines
+;@   called by : UpdateFloatySprites
+;@   reads     : hCoins, hInMenuOrDemo
+;@   writes    : hCoins, wLivesEarnedLost
+;@   calls     : AddScore, DisplayCoins
+;@ --------------------------------------------------------------------
 AddCoin:: ; 1BFF
 	ldh a, [hInMenuOrDemo]
 	and a
@@ -4357,6 +4794,11 @@ AddCoin:: ; 1BFF
 	jr nz, DisplayCoins
 	inc a
 	ld [wLivesEarnedLost], a		; award a life for collecting 100 coins
+;@ --------------------------------------------------------------------
+;@ DisplayCoins   [00:1C1B]   16 lines
+;@   called by : AddCoin, GameState_11, GameState_1B_LeaveBonusGame
+;@   reads     : hCoins
+;@ --------------------------------------------------------------------
 DisplayCoins::; 1C1B
 	ldh a, [hCoins]
 	ld b, a
@@ -4373,6 +4815,12 @@ DisplayCoins::; 1C1B
 	ret
 
 ; 1C33
+;@ --------------------------------------------------------------------
+;@ UpdateLives   [00:1C33]   46 lines
+;@   called by : GameState_11, GameState_1B_LeaveBonusGame, VBlank
+;@   reads     : hInMenuOrDemo, wLives, wLivesEarnedLost
+;@   writes    : hGameState, wLives, wLivesEarnedLost
+;@ --------------------------------------------------------------------
 UpdateLives::
 	ldh a, [hInMenuOrDemo]	; Demo mode?
 	and a
@@ -4419,6 +4867,11 @@ UpdateLives::
 	sub a, 1			; Subtract one life
 	jr .displayUpdatedLives
 
+;@ --------------------------------------------------------------------
+;@ GameState_39   [00:1C7C]   51 lines
+;@   reads     : hWorldAndLevel, wNumContinues, wScore
+;@   writes    : rTMA, wContinueWorldAndLevel, wGameTimerExpiringFlag, wNumContinues
+;@ --------------------------------------------------------------------
 GameState_39::	; 1C7C
 	ld hl, $9C00			; todo window tile map?
 	ld de, .label_1CD7
@@ -4470,14 +4923,23 @@ GameState_39::	; 1C7C
 	db	"     game  over  "
 
 ; game over animation and wait until menu
-GameState_3A:: ; 1CE8
+;@ --------------------------------------------------------------------
+;@ GameState_3A_GameOver   [00:1CE8]   7 lines
+;@   reads     : wGameOverTimerExpired
+;@   calls     : GameState_38
+;@ --------------------------------------------------------------------
+GameState_3A_GameOver:: ; 1CE8
 	ld a, [wGameOverTimerExpired]
 	and a
 	call nz, GameState_38.resetToMenu
 	ret
 
 ; prepare time up
-GameState_3B:: ; 1CF0
+;@ --------------------------------------------------------------------
+;@ GameState_3B_PrepareTimeUp   [00:1CF0]   24 lines
+;@   writes    : hTimer
+;@ --------------------------------------------------------------------
+GameState_3B_PrepareTimeUp:: ; 1CF0
 	ld hl, $9C00			; tile map for window
 	ld de, .text_1D14
 	ld c, 9
@@ -4501,7 +4963,12 @@ GameState_3B:: ; 1CF0
 	db " time up "
 
 ; time up. Run out frame timer
-GameState_3C:: ; 1D1D
+;@ --------------------------------------------------------------------
+;@ GameState_3C_TimeUp   [00:1D1D]   9 lines
+;@   reads     : hTimer
+;@   writes    : hGameState
+;@ --------------------------------------------------------------------
+GameState_3C_TimeUp:: ; 1D1D
 	ldh a, [hTimer]
 	and a
 	ret nz
@@ -4510,6 +4977,13 @@ GameState_3C:: ; 1D1D
 	ret
 
 ; called every frame
+;@ --------------------------------------------------------------------
+;@ Call_1D26   [00:1D26]   276 lines
+;@   called by : AnimateMario, Call_4FB2
+;@   reads     : hGameState, hJoyHeld, hScrollX, hSuperStatus, hUnderground, wLevelEndCounter, wMarioAnimationIndex, wMarioJumpStatus
+;@   writes    : hScrollX, wMarioAnimationFrameCounter, wMarioAnimationIndex, wMarioSpeed, wMarioStepPhase, wMarioWalkRunSpeed
+;@   calls     : Call_1AAD, Call_2C9F, Jmp_1B45
+;@ --------------------------------------------------------------------
 Call_1D26::
 	ld hl, $C20D		; mario going left (20) or right (10), changing dir (01)??
 	ld a, [hl]
@@ -4786,6 +5260,11 @@ Call_1D26::
 
 ; Clears objects 0-3, 7 to 20. Projectiles, fragments of blocks, score
 ; TODO name
+;@ --------------------------------------------------------------------
+;@ Call_1ED4   [00:1ED4]   34 lines
+;@   called by : Call_1AAD, GameState_02, GameState_03_PrepareDeath, GameState_0A_WarpUnderground, GameState_0B_EnterPipeFromUnderground, Jmp_1765
+;@   writes    : hProjectileStatus
+;@ --------------------------------------------------------------------
 Call_1ED4:: ; 1ED4
 	push hl
 	push bc
@@ -4820,7 +5299,14 @@ Call_1ED4:: ; 1ED4
 	pop hl
 	ret
 
-Call_1F03:: ; 1F03
+;@ --------------------------------------------------------------------
+;@ UpdateInvincibility   [00:1F03]   25 lines
+;@   called by : GameState_00_Gameplay, GameState_0D
+;@   reads     : hFrameCounter, wCurrentSong, wInvincibilityTimer, wMarioVisible
+;@   writes    : wInvincibilityTimer, wMarioVisible
+;@   calls     : StartLevelMusic
+;@ --------------------------------------------------------------------
+UpdateInvincibility:: ; 1F03
 	ldh a, [hFrameCounter]
 	and a, $03
 	ret nz				; every 4 frames
@@ -4845,7 +5331,14 @@ Call_1F03:: ; 1F03
 	ret
 
 ; called every frame in non autoscroll levels
-Call_1F2D:: ; 1F2D
+;@ --------------------------------------------------------------------
+;@ UpdateSuperball   [00:1F2D]   122 lines
+;@   called by : GameState_00_Gameplay
+;@   reads     : wSuperballTTL
+;@   writes    : wSuperballTTL
+;@   calls     : Call_200A, FindNeighboringTile
+;@ --------------------------------------------------------------------
+UpdateSuperball:: ; 1F2D
 	ld b, $01			; just one superball?
 	ld hl, hProjectileStatus		; projectiles at A9, AA and AB?
 	ld de, wOAMBuffer + 1 ; objects 0, X position
@@ -4967,6 +5460,12 @@ Call_1F2D:: ; 1F2D
 	jr .verticalMotion
 
 ; FFAD is preloaded with the Y coord, A contains X coord
+;@ --------------------------------------------------------------------
+;@ FindNeighboringTile   [00:1FD2]   37 lines
+;@   called by : CheckSuperballEnemyHit, UpdateSuperball
+;@   reads     : hGameState, hScrollX
+;@   calls     : Call_200A, LookupTile
+;@ --------------------------------------------------------------------
 FindNeighboringTile::	; gets called in autoscroll from 514F?
 	ld b, a
 	ldh a, [hScrollX]
@@ -5004,6 +5503,13 @@ FindNeighboringTile::	; gets called in autoscroll from 514F?
 	cp a, $60			; every tile above $60 is solid
 	ret
 
+;@ --------------------------------------------------------------------
+;@ Call_200A   [00:200A]   185 lines
+;@   called by : CheckSuperballEnemyHit, FindNeighboringTile, UpdateSuperball
+;@   reads     : hGameState, hHitboxBottom, hScrollX
+;@   writes    : hFloatyControl, hFloatyX, hFloatyY, hHitboxBottom, hHitboxLeft, hHitboxRight, hHitboxTop
+;@   calls     : AddScore, Call_254D, Call_2A68, Call_2AAD, Call_A10, ComputeHitbox
+;@ --------------------------------------------------------------------
 Call_200A::
 	push hl
 	push de
@@ -5057,7 +5563,7 @@ Call_200A::
 	ldh [hHitboxBottom], a		; FF8F FFA0 FFA1 FFA2, some sort of hitbox?
 	pop hl
 	push hl
-	call Call_AAF		; hit detection?
+	call ComputeHitbox		; hit detection?
 	and a
 	jr z, .popRegsAndNextEnemy
 	dec l
@@ -5189,6 +5695,12 @@ Call_200A::
 	pop hl
 	ret
 
+;@ --------------------------------------------------------------------
+;@ Call_2113   [00:2113]   8 lines
+;@   called by : GameState_00_Gameplay
+;@   reads     : hInMenuOrDemo
+;@   writes    : hJoyHeld
+;@ --------------------------------------------------------------------
 Call_2113:: ; 2113
 	ldh a, [hInMenuOrDemo]
 	and a
@@ -5214,6 +5726,12 @@ Data_211D::
 Data_216D::	 ; jumping "parabola"?
 	db $04, $04, $03, $03, $02, $02, $02, $02, $02, $02, $02, $02, $02, $01, $01, $01, $01, $01, $01, $01, $00, $01, $00, $01, $00, $00, $7F
 
+;@ --------------------------------------------------------------------
+;@ Jump_2188   [00:2188]   12 lines
+;@   called by : UpdateScrollProgress
+;@   reads     : hScrollX
+;@   writes    : hColumnLoadRequest
+;@ --------------------------------------------------------------------
 Jump_2188:: ; 2188
 	ld a, $03
 	ldh [hColumnLoadRequest], a		; has to do with rendering
@@ -5226,7 +5744,13 @@ Jump_2188:: ; 2188
 	ldh [hColumnLoadRequest], a
 	ret
 
-Call_2198:: ; 2198
+;@ --------------------------------------------------------------------
+;@ UpdateScrollProgress   [00:2198]   18 lines
+;@   called by : GameState_00_Gameplay, GameState_0D, GameState_22_ScrollScreen, GameState_2E_MarioAndDaisyWalking, GameState_31
+;@   reads     : hColumnLoadRequest, hScrollX
+;@   calls     : Jump_2188, LoadNextColumn
+;@ --------------------------------------------------------------------
+UpdateScrollProgress:: ; 2198
 	ldh a, [hColumnLoadRequest]
 	and a
 	jr nz, Jump_2188
@@ -5244,6 +5768,13 @@ Call_2198:: ; 2198
 	inc [hl]
 
 ; decompress a column from the level
+;@ --------------------------------------------------------------------
+;@ LoadNextColumn   [00:21B1]   125 lines
+;@   called by : GameState_1C, UpdateLevelColumns, UpdateScrollProgress
+;@   reads     : hColumnIndex, hColumnPointerHi, hColumnPointerLo, hLevelIndex, hScreenIndex, hScrollX
+;@   writes    : hColumnIndex, hColumnLoadRequest, hColumnPointerHi, hColumnPointerLo
+;@   calls     : CheckBlockForItem, CheckPipeForWarp
+;@ --------------------------------------------------------------------
 LoadNextColumn::	; 21B1
 	ld b, $10			; the screen without hud is exactly 16 tiles high
 	ld hl, $C0B0		; tilemap column cache todo
@@ -5369,6 +5900,13 @@ LoadNextColumn::	; 21B1
 	jp .decodeLoop
 
 ; draw a column in the tile map
+;@ --------------------------------------------------------------------
+;@ DrawColumn   [00:2258]   57 lines
+;@   called by : UpdateLevelColumns, VBlank
+;@   reads     : hColumnLoadRequest, hNextColumnToLoad
+;@   writes    : hColumnLoadRequest, hNextColumnToLoad
+;@   calls     : Call_22FD, Call_2363
+;@ --------------------------------------------------------------------
 DrawColumn:: ; 2258
 	ldh a, [hColumnLoadRequest]		; 01 if a new column needs to be loaded, 03 if we're 
 	cp a, $01			; still standing on that spot, but we don't need a new 
@@ -5426,6 +5964,11 @@ DrawColumn:: ; 2258
 	ret
 
 ; Does a lookup if this pipe is a warp pipe. Store data temporarily in HRAM
+;@ --------------------------------------------------------------------
+;@ CheckPipeForWarp   [00:22A9]   62 lines
+;@   called by : LoadNextColumn
+;@   reads     : hColumnIndex, hLevelIndex, hScreenIndex, hUnderground
+;@ --------------------------------------------------------------------
 CheckPipeForWarp:: ; 22A9
 	push hl
 	push de
@@ -5488,6 +6031,12 @@ CheckPipeForWarp:: ; 22A9
 	ret
 
 ; hl contains the location in VRAM of the pipe?
+;@ --------------------------------------------------------------------
+;@ Call_22FD   [00:22FD]   29 lines
+;@   called by : DrawColumn
+;@   reads     : hPipeExitScreen
+;@   writes    : hPipeExitScreen
+;@ --------------------------------------------------------------------
 Call_22FD::
 	ldh a, [$FFF4]	; is non-zero in underground, or when nearing a pipe?
 	and a
@@ -5517,6 +6066,12 @@ Call_22FD::
 	pop hl
 	ret
 
+;@ --------------------------------------------------------------------
+;@ CheckBlockForItem   [00:2321]   45 lines
+;@   called by : LoadNextColumn
+;@   reads     : hColumnIndex, hLevelIndex, hScreenIndex
+;@   writes    : wBlockContents
+;@ --------------------------------------------------------------------
 CheckBlockForItem:: ; 2321
 	push hl
 	push de
@@ -5562,6 +6117,12 @@ CheckBlockForItem:: ; 2321
 	ret
 
 ; stores the content of the block in overlay?
+;@ --------------------------------------------------------------------
+;@ Call_2363   [00:2363]   17 lines
+;@   called by : DrawColumn
+;@   reads     : wBlockContents
+;@   writes    : wBlockContents
+;@ --------------------------------------------------------------------
 Call_2363:: ; 2363
 	ld a, [wBlockContents]
 	and a
@@ -5579,19 +6140,25 @@ Call_2363:: ; 2363
 	ret
 
 ; too many calls to far banks
+;@ --------------------------------------------------------------------
+;@ GameState_0D   [00:2376]   65 lines
+;@   reads     : hActiveRomBank, hFrameCounter, hGamePaused, hSavedRomBank, wMarioAnimationIndex
+;@   writes    : hActiveRomBank, hSavedRomBank, rROMB0, wMarioAnimationIndex
+;@   calls     : Call_1736, Call_2491, Call_490D, Call_4FB2, Call_4FEC, CheckMarioEnemyCollision, CheckSuperballEnemyHit, Jmp_1B45
+;@ --------------------------------------------------------------------
 GameState_0D::
 ; INCBIN "baserom.gb", $2376, $2401 - $2376
     ldh  a, [hGamePaused]   ; hGamePaused = $FFB2
     and  a
     ret  nz
-    call Call_2198
+    call UpdateScrollProgress
     call Call_4FB2
     ld   a, [$D007]         ; _RAM_D007_
     and  a
     call nz, Jmp_1B45
-    call Call_84E
+    call CheckMarioEnemyCollision
     call Call_4FEC
-    call Call_5118
+    call CheckSuperballEnemyHit
     ldh  a, [hActiveRomBank]    ; hActiveRomBank = $FFFD
     ldh  [hSavedRomBank], a ; hSavedRomBank = $FFE1
     ld   a, $03
@@ -5631,8 +6198,8 @@ GameState_0D::
     ldh  [hActiveRomBank], a    ; hActiveRomBank = $FFFD
     ld   [rROMB0], a
     call Call_1736
-    call Call_5118.jmp_515E
-    call Call_1F03
+    call CheckSuperballEnemyHit.jmp_515E
+    call UpdateInvincibility
     ldh  a, [hFrameCounter] ; hFrameCounter = $FFAC
     and  $03
     ret  nz
@@ -5644,6 +6211,11 @@ GameState_0D::
 
 
 
+;@ --------------------------------------------------------------------
+;@ AnimateBackground   [00:2401]   38 lines
+;@   called by : VBlank
+;@   reads     : hFrameCounter, hGameState, hWorldAndLevel, wBackgroundAnimated
+;@ --------------------------------------------------------------------
 AnimateBackground:: ; 2401
 	ld a, [wBackgroundAnimated]
 	and a
@@ -5686,7 +6258,14 @@ LevelsWithAnimatedBackground::
 	db 0, 0, 1, 1, 1, 0, 0, 1, 1, 0, 1, 0
 
 ; wBackgroundAnimated is clear. But what are the other variables?
-Call_2442::
+;@ --------------------------------------------------------------------
+;@ InitLevel   [00:2442]   16 lines
+;@   called by : GameState_08, GameState_11
+;@   reads     : hLevelIndex
+;@   writes    : wBackgroundAnimated, wLevelProgress
+;@   calls     : InitEnemySlots
+;@ --------------------------------------------------------------------
+InitLevel::
 	ld a, $0C
 	ld [wLevelProgress], a
 	call InitEnemySlots
@@ -5702,6 +6281,11 @@ Call_2442::
 	ret
 
 ; initializes objects? skips over enemies?
+;@ --------------------------------------------------------------------
+;@ InitEnemySlots   [00:245C]   39 lines
+;@   called by : GameState_02, GameState_0A_WarpUnderground, GameState_0B_EnterPipeFromUnderground, InitLevel
+;@   reads     : hLevelIndex, wLevelProgress
+;@ --------------------------------------------------------------------
 InitEnemySlots:: ; 245C
 	ld hl, LevelEnemyPointers
 	ldh a, [hLevelIndex]
@@ -5741,12 +6325,24 @@ InitEnemySlots:: ; 245C
 	jp nz, .loop		; why JP and nor JR?
 	ret
 
+;@ --------------------------------------------------------------------
+;@ Call_2491   [00:2491]   6 lines
+;@   called by : GameState_00_Gameplay, GameState_05_LevelClearScoring, GameState_0D, GameState_1C, GameState_1D, GameState_27_RemoveBlocks
+;@   calls     : DrawEnemies, SpawnEnemies, UpdateEnemies
+;@ --------------------------------------------------------------------
 Call_2491:: ; 2491
 	call SpawnEnemies
-	call Call_2648
+	call UpdateEnemies
 	call DrawEnemies
 	ret
 
+;@ --------------------------------------------------------------------
+;@ SpawnEnemies   [00:249B]   39 lines
+;@   called by : Call_2491
+;@   reads     : wLevelProgress
+;@   writes    : hEnemyX, hEnemyY
+;@   calls     : Call_24EF
+;@ --------------------------------------------------------------------
 SpawnEnemies:: ; 249B
 	ld a, [$D010]
 	ld l, a
@@ -5786,6 +6382,13 @@ SpawnEnemies:: ; 249B
 	jr SpawnEnemies
 
 ; enemy launches projectile?
+;@ --------------------------------------------------------------------
+;@ Call_24D6   [00:24D6]   17 lines
+;@   called by : UpdateEnemies
+;@   reads     : wCommandArgument
+;@   writes    : hEnemyFlags, hEnemyId
+;@   calls     : Jmp_250B
+;@ --------------------------------------------------------------------
 Call_24D6:: ; 24D6
 	ld a, [wCommandArgument]
 	ldh [hEnemyId], a
@@ -5803,6 +6406,12 @@ Call_24D6:: ; 24D6
 	ldh [hEnemyFlags], a	; flags
 	jr Jmp_250B
 
+;@ --------------------------------------------------------------------
+;@ Call_24EF   [00:24EF]   21 lines
+;@   called by : SpawnEnemies
+;@   reads     : hWinCount
+;@   writes    : hEnemyFlags, hEnemyId
+;@ --------------------------------------------------------------------
 Call_24EF:: ; 24EF
 	ldh a, [hWinCount]
 	and a
@@ -5824,6 +6433,13 @@ Call_24EF:: ; 24EF
 	ld a, [hl]
 	ldh [hEnemyFlags], a	; flags
 
+;@ --------------------------------------------------------------------
+;@ Jmp_250B   [00:250B]   45 lines
+;@   called by : Call_24D6
+;@   reads     : hEnemyId
+;@   writes    : hEnemyCarryingMario, hEnemyHealth, hEnemyMortalityAndSize, hEnemyScriptIndex
+;@   calls     : CopyBufferToEnemySlot
+;@ --------------------------------------------------------------------
 Jmp_250B:
 	xor a
 	ldh [hEnemyScriptIndex], a
@@ -5869,6 +6485,12 @@ Jmp_250B:
 	call CopyBufferToEnemySlot
 	ret
 
+;@ --------------------------------------------------------------------
+;@ Call_254D   [00:254D]   14 lines
+;@   called by : Call_200A, Jmp_185D
+;@   reads     : hEnemyX, hEnemyY
+;@   calls     : InitEnemy
+;@ --------------------------------------------------------------------
 Call_254D:: ; 254D
 	ld hl, $D190		; powerup slot
 	ld [hl], a
@@ -5883,6 +6505,13 @@ Call_254D:: ; 254D
 	ld [$DFE0], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ DrawEnemies   [00:2568]   154 lines
+;@   called by : Call_2491
+;@   reads     : hEnemySpriteIndex, hEnemyX, hEnemyY, wObjectAttributes, wObjectsDrawn
+;@   writes    : hEnemyId, hEnemyX, hEnemyY, wObjectAttributes, wObjectsDrawn
+;@   calls     : CopyBufferToEnemySlot, CopyEnemySlotToBuffer
+;@ --------------------------------------------------------------------
 DrawEnemies::; 2568
 	xor a
 	ld [wObjectsDrawn], a
@@ -6037,7 +6666,14 @@ DrawEnemies::; 2568
 	ld [wObjectsDrawn], a
 	jr .drawSpriteLoop
 
-Call_2648:: ; 2648
+;@ --------------------------------------------------------------------
+;@ UpdateEnemies   [00:2648]   596 lines
+;@   called by : Call_2491
+;@   reads     : hEnemyCarryingMario, hEnemyFlags, hEnemyId, hEnemyMortalityAndSize, hEnemyScriptIndex, hEnemySpeed, hEnemyX, hEnemyY
+;@   writes    : hEnemyCarryingMario, hEnemyFlags, hEnemyId, hEnemyScriptIndex, hEnemySpeed, hEnemySpriteIndex, hEnemyX, hEnemyY
+;@   calls     : Call_1AAD, Call_24D6, Call_2B84, Call_2B9A, Call_2BBB, Call_2BE4, Call_2BFE, Call_2C21
+;@ --------------------------------------------------------------------
+UpdateEnemies:: ; 2648
 	ld hl, $D100
 .loop
 	ld a, [hl]
@@ -6633,6 +7269,11 @@ Call_2648:: ; 2648
 	ret
 
 ; stomp enemy
+;@ --------------------------------------------------------------------
+;@ Call_2A01   [00:2A01]   26 lines
+;@   called by : CheckMarioEnemyCollision, UpdateMarioPhysics
+;@   calls     : InitEnemy
+;@ --------------------------------------------------------------------
 Call_2A01:: ; 2A01
 	push hl
 	ld a, [hl]
@@ -6659,6 +7300,11 @@ Call_2A01:: ; 2A01
 	ret
 
 ; enemy hit from down under
+;@ --------------------------------------------------------------------
+;@ Call_2A23   [00:2A23]   25 lines
+;@   called by : SpawnFloatyAtMario
+;@   calls     : InitEnemy
+;@ --------------------------------------------------------------------
 Call_2A23:: ; 2A23
 	push hl
 	ld a, [hl]
@@ -6684,6 +7330,11 @@ Call_2A23:: ; 2A23
 	ret
 
 ; called when an enemy hits us on the side?
+;@ --------------------------------------------------------------------
+;@ Call_2A44   [00:2A44]   28 lines
+;@   called by : CheckMarioEnemyCollision
+;@   calls     : InitEnemy
+;@ --------------------------------------------------------------------
 Call_2A44:: ; 2A44
 	push hl
 	ld a, [hl]
@@ -6712,6 +7363,12 @@ Call_2A44:: ; 2A44
 	ret
 
 ; hit by superball
+;@ --------------------------------------------------------------------
+;@ Call_2A68   [00:2A68]   54 lines
+;@   called by : Call_200A
+;@   writes    : wSfxRequestNoise
+;@   calls     : InitEnemy
+;@ --------------------------------------------------------------------
 Call_2A68:: ; 2A68
 	push hl
 	ld a, l
@@ -6766,6 +7423,12 @@ Call_2A68:: ; 2A68
 	ret
 
 ; enemy hit by bullet in autoscroll
+;@ --------------------------------------------------------------------
+;@ Call_2AAD   [00:2AAD]   67 lines
+;@   called by : Call_200A
+;@   writes    : wSfxRequestNoise
+;@   calls     : InitEnemy
+;@ --------------------------------------------------------------------
 Call_2AAD:: ; 2AAD
 	push hl
 	ld a, l
@@ -6833,6 +7496,11 @@ Call_2AAD:: ; 2AAD
 	ret
 
 ; HL refers to the slot of the enemy touched whilst invincible
+;@ --------------------------------------------------------------------
+;@ Call_2B06   [00:2B06]   27 lines
+;@   called by : CheckMarioEnemyCollision
+;@   calls     : InitEnemy
+;@ --------------------------------------------------------------------
 Call_2B06:: ; 2B06
 	push hl
 	ld a, [hl]
@@ -6860,6 +7528,11 @@ Call_2B06:: ; 2B06
 	ld a, $FF
 	ret
 
+;@ --------------------------------------------------------------------
+;@ ExplodeAllEnemies   [00:2B2A]   39 lines
+;@   called by : GameState_07_LevelEndGate, UpdateEnemies
+;@   writes    : hEnemyFlags, hEnemyId, hEnemyScriptIndex
+;@ --------------------------------------------------------------------
 ExplodeAllEnemies:: ; 2B2A
 	ld hl, $D100
 .loop
@@ -6899,6 +7572,11 @@ ExplodeAllEnemies:: ; 2B2A
 	ret
 
 ; enemy collision side check
+;@ --------------------------------------------------------------------
+;@ Call_2B5D   [00:2B5D]   29 lines
+;@   reads     : hEnemyMortalityAndSize, hEnemyX, hEnemyY, hScrollX
+;@   calls     : LookupTile
+;@ --------------------------------------------------------------------
 Call_2B5D:: ; 2B5D
 	ldh a, [hEnemyX]
 	ld c, a
@@ -6928,6 +7606,12 @@ Call_2B5D:: ; 2B5D
 
 ; another collision check, but not taking into account width (just left check?)
 ; also doesn't add 4 like the previous one
+;@ --------------------------------------------------------------------
+;@ Call_2B84   [00:2B84]   16 lines
+;@   called by : UpdateEnemies
+;@   reads     : hEnemyX, hEnemyY, hScrollX
+;@   calls     : LookupTile
+;@ --------------------------------------------------------------------
 Call_2B84:: ; 2B84
 	ldh a, [hEnemyX]
 	ld c, a
@@ -6944,6 +7628,12 @@ Call_2B84:: ; 2B84
 	ret
 
 ; collision check, adding width unconditionally (right bound?)
+;@ --------------------------------------------------------------------
+;@ Call_2B9A   [00:2B9A]   23 lines
+;@   called by : UpdateEnemies
+;@   reads     : hEnemyMortalityAndSize, hEnemyX, hEnemyY, hScrollX
+;@   calls     : LookupTile
+;@ --------------------------------------------------------------------
 Call_2B9A:: ; 2B9A
 	ldh a, [hEnemyX]
 	ld c, a
@@ -6967,6 +7657,11 @@ Call_2B9A:: ; 2B9A
 	ret
 
 ; checks collision one tile lower
+;@ --------------------------------------------------------------------
+;@ Call_2BBB   [00:2BBB]   30 lines
+;@   called by : UpdateEnemies
+;@   reads     : hEnemyMortalityAndSize, hEnemyX, hEnemyY, hScrollX
+;@ --------------------------------------------------------------------
 Call_2BBB:: ; 2BBB
 	ldh a, [hEnemyX]
 	ld c, a
@@ -6997,6 +7692,12 @@ Call_2BBB:: ; 2BBB
 
 ; functionally identical to the previous one, apart from not clobbering C
 ; unused?
+;@ --------------------------------------------------------------------
+;@ Call_2BE4   [00:2BE4]   20 lines
+;@   called by : UpdateEnemies
+;@   reads     : hEnemyX, hEnemyY, hScrollX
+;@   calls     : LookupTile
+;@ --------------------------------------------------------------------
 Call_2BE4:: ; 2BE4
 	ldh a, [hEnemyX]
 	ld c, a
@@ -7017,6 +7718,12 @@ Call_2BE4:: ; 2BE4
 
 ; check for collision one tile down, 5 pixels to the right of the right bound?
 ; unused?
+;@ --------------------------------------------------------------------
+;@ Call_2BFE   [00:2BFE]   24 lines
+;@   called by : UpdateEnemies
+;@   reads     : hEnemyMortalityAndSize, hEnemyX, hEnemyY, hScrollX
+;@   calls     : LookupTile
+;@ --------------------------------------------------------------------
 Call_2BFE:: ; 2BFE
 	ldh a, [hEnemyX]
 	ld c, a
@@ -7041,6 +7748,12 @@ Call_2BFE:: ; 2BFE
 	ret
 
 ; top collision? upper left?
+;@ --------------------------------------------------------------------
+;@ Call_2C21   [00:2C21]   35 lines
+;@   called by : UpdateEnemies
+;@   reads     : hEnemyMortalityAndSize, hEnemyX, hEnemyY, hScrollX
+;@   calls     : LookupTile
+;@ --------------------------------------------------------------------
 Call_2C21:: ; 2C21
 	ldh a, [hEnemyX]
 	ld c, a
@@ -7076,6 +7789,10 @@ Call_2C21:: ; 2C21
 	ret
 
 ; Yet another collision detection routine, upper left bound?
+;@ --------------------------------------------------------------------
+;@ Call_2C52   [00:2C52]   24 lines
+;@   reads     : hEnemyMortalityAndSize, hEnemyX, hEnemyY, hScrollX
+;@ --------------------------------------------------------------------
 Call_2C52:: ; 2C52
 	ldh a, [hEnemyX]
 	ld c, a
@@ -7100,6 +7817,10 @@ Call_2C52:: ; 2C52
 	ret
 
 ; another one. upper right bound?
+;@ --------------------------------------------------------------------
+;@ Call_2C74   [00:2C74]   30 lines
+;@   reads     : hEnemyMortalityAndSize, hEnemyX, hEnemyY, hScrollX
+;@ --------------------------------------------------------------------
 Call_2C74:: ; 2C74
 	ldh a, [hEnemyX]
 	ld c, a
@@ -7130,6 +7851,12 @@ Call_2C74:: ; 2C74
 	ret
 
 ; scroll all enemies by B
+;@ --------------------------------------------------------------------
+;@ Call_2C9F   [00:2C9F]   24 lines
+;@   called by : Call_1D26, Call_4FB2, UpdateEnemies
+;@   reads     : hEnemyX
+;@   writes    : hEnemyX
+;@ --------------------------------------------------------------------
 Call_2C9F:: ; 2C9F
 	ld a, b
 	and a
@@ -7253,7 +7980,12 @@ Data_3564:: ; 3564
 INCBIN "baserom.gb", $3564, $3D1A - $3564
 
 ; called at level start, is some sort of init
-Call_3D1A: ; 3D1A
+;@ --------------------------------------------------------------------
+;@ UpdateBonusGameTimer   [00:3D1A]   63 lines
+;@   called by : GameState_11
+;@   calls     : DisplayTimer
+;@ --------------------------------------------------------------------
+UpdateBonusGameTimer: ; 3D1A
 	ld hl, $C030	; TODO ? wOAMBuffer + $30 ? used for "dynamic" sprites?
 	ld b, $20
 	xor a
@@ -7316,12 +8048,17 @@ Call_3D1A: ; 3D1A
 	ld [hl], a		; DA29 - Changes during the bonus game..
 	ret
 
+;@ --------------------------------------------------------------------
+;@ DisplayTimer   [00:3D6A]   31 lines
+;@   called by : UpdateBonusGameTimer, VBlank
+;@   reads     : hGameState, wGameTimer
+;@ --------------------------------------------------------------------
 DisplayTimer:: ; 3D6A ; TODO better name?
 	ld a, [$C0A4]		; stores game over?
 	and a
 	ret nz
 	ldh a, [hGameState]
-	cp a, $12			; game states > $12 don't make the timer count TODO
+	cp a, GAMESTATE_ENTER_BONUS_GAME			; game states > $12 don't make the timer count TODO
 	ret nc
 	ld a, [wGameTimer]	; Timer subdivision
 	cp a, $28			; 40 frames per time unit (why not 60?)
@@ -7347,7 +8084,12 @@ DisplayTimer:: ; 3D6A ; TODO better name?
 	ret
 
 ; entering bonus game. Clear the background, and print amount of lives
-GameState_12:: ; 3D97
+;@ --------------------------------------------------------------------
+;@ GameState_12_EnterBonusGame   [00:3D97]   40 lines
+;@   reads     : wLives
+;@   writes    : hGameState, hScrollX, rLCDC
+;@ --------------------------------------------------------------------
+GameState_12_EnterBonusGame:: ; 3D97
 	ld hl, $DFE8
 	ld a, $09
 	ld [hl], a
@@ -7387,6 +8129,11 @@ GameState_12:: ; 3D97
 	ldh [hGameState], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ GameState_13   [00:3DD7]   137 lines
+;@   reads     : rDIV
+;@   writes    : hGameState, rLCDC
+;@ --------------------------------------------------------------------
 GameState_13:: ; 3DD7
 	xor a
 	ldh [rLCDC], a
@@ -7524,7 +8271,12 @@ GameState_13:: ; 3DD7
 	ret
 
 ; draw the ladder
-GameState_16:: ; 3EA7
+;@ --------------------------------------------------------------------
+;@ GameState_16_DrawLadder   [00:3EA7]   46 lines
+;@   reads     : wLadderLocationHi, wLadderLocationLo
+;@   writes    : hGameState, wLadderStatus
+;@ --------------------------------------------------------------------
+GameState_16_DrawLadder:: ; 3EA7
 	ld bc, $0020		; todo screen width
 .drawLadder
 	ld de, wLadderTiles
@@ -7570,6 +8322,11 @@ GameState_16:: ; 3EA7
 ; Find the tile located at pixel coordinates FFAD and FFAE
 ; Return the memory location of the tile in FFAF and FFBO
 ; only called from LookupTile at $153
+;@ --------------------------------------------------------------------
+;@ _LookupTile   [00:3EE6]   31 lines
+;@   called by : LookupTile
+;@   writes    : hTilemapAddrHi
+;@ --------------------------------------------------------------------
 _LookupTile:: ; 3EE6
 	ldh a, [$FFAD]
 	sub a, $10			; Possibly to account for offset object coordinates
@@ -7601,6 +8358,11 @@ _LookupTile:: ; 3EE6
 ; called when mario hits a block that "moves" up and down
 ; FFB0 and FFAF now seem to contain the block above him?
 ; FFAD and FFAE now seem to determine where the block-sprite spawns...
+;@ --------------------------------------------------------------------
+;@ Call_3F13   [00:3F13]   29 lines
+;@   called by : Jmp_1765, Jmp_185D, UpdateFloatySprites
+;@   reads     : hTilemapAddrHi
+;@ --------------------------------------------------------------------
 Call_3F13::	; 3F13
 	ldh a, [hTilemapAddrHi]		; hey look at that. goes from 98 to ~9B
 	ld d, a
@@ -7630,6 +8392,12 @@ Call_3F13::	; 3F13
 
 ; Display the score at wScore to the top right corner
 ; Print spaces instead of leading zeroes TODO Reuses FFB1?
+;@ --------------------------------------------------------------------
+;@ DisplayScore   [00:3F39]   64 lines
+;@   called by : GameState_0E, VBlank
+;@   reads     : hColumnLoadRequest, hScoreLeadingZero
+;@   writes    : hScoreLeadingZero
+;@ --------------------------------------------------------------------
 DisplayScore:: ; 3F39
 	ldh a, [hScoreLeadingZero]	; Some check to see if the score needs to be  
 	and a				; updated?
@@ -7694,6 +8462,10 @@ DisplayScore:: ; 3F39
 	pop af
 	jr .printSecondDigit
 
+;@ --------------------------------------------------------------------
+;@ DMARoutine   [00:3F92]   8 lines
+;@   writes    : rDMA
+;@ --------------------------------------------------------------------
 DMARoutine::
 	ld a, HIGH(wOAMBuffer)
 	ldh [rDMA], a

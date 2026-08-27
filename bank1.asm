@@ -1,3 +1,4 @@
+INCLUDE "constants.asm"
 INCLUDE "sound_constants.asm"
 
 SECTION "bank 1", ROMX, BANK[1]
@@ -40,6 +41,13 @@ INCBIN "gfx/backgroundWorld2.2bpp"
 INCBIN "gfx/enemiesWorld4.2bpp"
 INCBIN "gfx/backgroundWorld4.2bpp"
 
+;@ --------------------------------------------------------------------
+;@ Call_4FB2   [01:4FB2]   35 lines
+;@   called by : GameState_0D
+;@   reads     : hFrameCounter, hScrollX, wLevelEndCounter
+;@   writes    : hScrollX
+;@   calls     : Call_1D26, Call_2C9F, Call_50CC
+;@ --------------------------------------------------------------------
 Call_4FB2:: ; 4FB2
 	ldh a, [hFrameCounter]
 	and a, $01
@@ -75,6 +83,12 @@ Call_4FB2:: ; 4FB2
 	inc [hl]
 	ret
 
+;@ --------------------------------------------------------------------
+;@ Call_4FEC   [01:4FEC]   101 lines
+;@   called by : GameState_0D
+;@   reads     : hJoyHeld, hScrollX, hSuperStatus, wLevelEndCounter
+;@   calls     : Call_5089, Call_50CC, LookupTile
+;@ --------------------------------------------------------------------
 Call_4FEC:: ; 4FEC
 	ldh a, [hJoyHeld]
 	bit 6, a					; up button
@@ -176,6 +190,12 @@ Call_4FEC:: ; 4FEC
 	ld [$DFE0], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ Call_5089   [01:5089]   43 lines
+;@   called by : Call_4FEC
+;@   reads     : hScrollX
+;@   calls     : Jmp_1B45, LookupTile
+;@ --------------------------------------------------------------------
 Call_5089:: ; 5089
 	ld hl, wMarioY
 	ldi a, [hl]
@@ -219,6 +239,12 @@ Call_5089:: ; 5089
 	ld a, $FF
 	ret
 
+;@ --------------------------------------------------------------------
+;@ Call_50CC   [01:50CC]   51 lines
+;@   called by : Call_4FB2, Call_4FEC
+;@   reads     : hScrollX, hSuperStatus
+;@   calls     : Jmp_1B45, LookupTile
+;@ --------------------------------------------------------------------
 Call_50CC:: ; 50CC
 	ld de, $0502
 	ldh a, [hSuperStatus]
@@ -270,7 +296,14 @@ Call_50CC:: ; 50CC
 	ld [$DFE0], a
 	ret
 
-Call_5118:: ; 5118
+;@ --------------------------------------------------------------------
+;@ CheckSuperballEnemyHit   [01:5118]   77 lines
+;@   called by : GameState_0D
+;@   reads     : wMarioX
+;@   writes    : hEnemyX, hEnemyY, hGameState, hHitboxBottom, hSuperStatus, hSuperballMario, hTimer
+;@   calls     : Call_200A, FindNeighboringTile
+;@ --------------------------------------------------------------------
+CheckSuperballEnemyHit:: ; 5118
 	ld b, $03				; 3 projectiles
 	ld hl, hProjectileStatus			; projectile status
 	ld de, wOAMBuffer + 1

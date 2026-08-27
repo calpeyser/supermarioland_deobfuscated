@@ -1,0 +1,17 @@
+# Procedures named from what they touch + who they call (see tools/xref.py).
+Call_807   UpdateLevelColumns        # hColumnIndex/hNextColumnToLoad; calls DrawColumn, LoadNextColumn
+Call_16F5  AnimateMario              # author noted "Animate mario?"; touches only wMarioAnimation*
+Call_17BC  CheckMarioTileCollision   # wMarioJumpStatus/OnGround + LookupTile + InjureMario/KillMario
+Call_AAF   ComputeHitbox             # touches exactly hHitboxTop/Bottom/Left/Right and nothing else
+Call_2198  UpdateScrollProgress      # hColumnLoadRequest/hScrollColumnPhase/hScrollX/wLevelProgress
+Call_1F03  UpdateInvincibility       # wInvincibilityTimer + wMarioVisible flashing + StartLevelMusic
+Call_1F2D  UpdateSuperball           # hProjectileStatus + wSuperballTTL + FindNeighboringTile
+Call_2648  UpdateEnemies             # 596L; the enemy slot/buffer engine, calls ExplodeAllEnemies
+Call_3D1A  UpdateBonusGameTimer      # wBonusGame* + wGameTimer; calls DisplayTimer
+Call_2442  InitLevel                 # hLevelIndex + wLevelProgress; calls InitEnemySlots
+Call_AEA   UpdateMarioPhysics        # wMarioJumpStatus/wMarioSpeed applied to wMarioX/wMarioY
+Call_A2D   SpawnFloatyAtMario        # writes hFloatyX/hFloatyY from wMarioX/wMarioY
+Call_5118  CheckSuperballEnemyHit    # hProjectileStatus vs hEnemyX/hEnemyY; FindNeighboringTile
+Jmp_6C4C   UpdateSoundChannel        # hCurrentChannel + rNR32/rNR51 + wCurrentSong
+Call_1B86  UpdateFloatySprites       # hFloaty* into wOAMBuffer; calls AddCoin
+Call_84E   CheckMarioEnemyCollision  # hHitbox* vs enemies; calls InjureMario and KillMario

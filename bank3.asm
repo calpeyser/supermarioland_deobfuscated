@@ -1,3 +1,4 @@
+INCLUDE "constants.asm"
 INCLUDE "inc/hardware.inc"
 INCLUDE "sound_constants.asm"
 
@@ -39,6 +40,12 @@ LevelEnemyPointersBank3:: ; 3:401A
 INCBIN "gfx/enemiesWorld3.2bpp"
 INCBIN "gfx/backgroundWorld3.2bpp"
 
+;@ --------------------------------------------------------------------
+;@ ReadJoypad   [03:47F2]   31 lines
+;@   called by : Init
+;@   reads     : hJoyHeld, rP1
+;@   writes    : hJoyHeld, hJoyPressed, rP1
+;@ --------------------------------------------------------------------
 ReadJoypad:: ; 47F2
 	ld a, $20		; select button keys
 	ldh [rP1], a
@@ -70,6 +77,12 @@ ReadJoypad:: ; 47F2
 	ldh [rP1], a	; deselect keys
 	ret
 
+;@ --------------------------------------------------------------------
+;@ Call_4823   [03:4823]   182 lines
+;@   called by : GameState_00_Gameplay
+;@   reads     : hHitboxRight
+;@   writes    : hHitboxRight
+;@ --------------------------------------------------------------------
 Call_4823:: ; 4823
 	ld a, h
 	ldh [$FF96], a
@@ -340,6 +353,12 @@ Call_490D:: ; 490D
 	ld [bc], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ Jmp_4966   [03:4966]   204 lines
+;@   called by : GameState_00_Gameplay, GameState_0D
+;@   reads     : hGameState, hInMenuOrDemo, hJoyHeld, hJoyPressed, hLevelIndex, hSuperballMario, wMarioSpeed, wMarioWalkRunSpeed
+;@   writes    : wMarioWalkRunSpeed, wSuperballTTL
+;@ --------------------------------------------------------------------
 Jmp_4966:: ; 4966
 	inc e
 	ld a, [de]
@@ -603,6 +622,13 @@ Data_663C:
 	dw Song_7934
 	dw Song_793F	; 19
 
+;@ --------------------------------------------------------------------
+;@ _UpdateSound__6662   [03:6662]   103 lines
+;@   called by : UpdateSoundWrapper__7FF0
+;@   reads     : hPauseTuneTimer, hPauseUnpauseMusic
+;@   writes    : hPauseTuneTimer, hPauseUnpauseMusic, wCurrentlyPlayingSound, wSfxRequestNoise
+;@   calls     : PanStereo, PlayMusic, PlayNoiseSFX, PlaySquareSFX, PlayWaveSFX, SetupChannel, StartMusic, _InitSound
+;@ --------------------------------------------------------------------
 _UpdateSound__6662:: ; 6662
 	push af
 	push bc
@@ -706,6 +732,13 @@ _UpdateSound__6662:: ; 6662
 .pauseSecondNoteData
 	db $B2, $E3, $C1, $C7	; 2080.5 Hz ~ C7
 
+;@ --------------------------------------------------------------------
+;@ PlayWaveSFX   [03:66F6]   73 lines
+;@   called by : _UpdateSound__6662
+;@   reads     : rDIV, wSfxRequestNoise
+;@   writes    : rNR30, wRandomValue
+;@   calls     : SetupChannel, SetupWavePattern
+;@ --------------------------------------------------------------------
 PlayWaveSFX:: ; 66F6
 	ld a, [wSfxRequestNoise]	; SFX channel, only has boss cry
 	cp a, $01
@@ -790,6 +823,10 @@ StartTimerTickSFX:: ; 676E
 GiraChannelData:: ; 6776
 	db $3C, $80, $A0, $50, $84 ; 138.9 Hz, C#3
 
+;@ --------------------------------------------------------------------
+;@ StartGiraSFX   [03:677B]   7 lines
+;@   calls     : Call_6791, sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartGiraSFX:: ; 677B
 	call Call_6791.jmp_679C
 	ret z
@@ -828,6 +865,10 @@ Call_6791:: ; 6791
 	ret z
 	ret
 
+;@ --------------------------------------------------------------------
+;@ StartJumpSFX   [03:67AF]   12 lines
+;@   calls     : Call_6791, sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartJumpSFX:: ; 67AF
 	call Call_6791.jmp_6796
 	ret z
@@ -840,6 +881,10 @@ StartJumpSFX:: ; 67AF
 	ld [hl], $86
 	ret
 
+;@ --------------------------------------------------------------------
+;@ ContinueJumpSFX   [03:67C4]   24 lines
+;@   calls     : ContinueSquareSFX, updateSoundProgress
+;@ --------------------------------------------------------------------
 ContinueJumpSFX:: ; 67C4
 	call updateSoundProgress
 	and a
@@ -864,6 +909,10 @@ ContinueJumpSFX:: ; 67C4
 	ld [hl], b
 	ret
 
+;@ --------------------------------------------------------------------
+;@ StartSuperballSFX   [03:67E4]   7 lines
+;@   calls     : Call_6791, sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartSuperballSFX:: ; 67E4
 	call Call_6791.jmp_6796
 	ret z
@@ -871,6 +920,12 @@ StartSuperballSFX:: ; 67E4
 	ld hl, SuperballChannelData
 	jp sfx_play__Jmp_69C6
 
+;@ --------------------------------------------------------------------
+;@ ContinueSquareSFX   [03:67F0]   23 lines
+;@   called by : ContinueCoinSFX, ContinueInjurySFX, ContinueJumpSFX, ContinueOneUpSFX, ContinueStompSFX, ContinueSweepSquareSFX
+;@   writes    : rNR10, rNR12, rNR14
+;@   calls     : updateSoundProgress
+;@ --------------------------------------------------------------------
 ContinueSquareSFX:
 	call updateSoundProgress
 	and a
@@ -899,12 +954,20 @@ CoinChannelData1::
 CoinChannelData2::
 	db $00, $80, $E2, $83, $87 ; 1049 Hz ~ C6
 
+;@ --------------------------------------------------------------------
+;@ StartCoinSFX   [03:6813]   6 lines
+;@   calls     : Call_6791, sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartCoinSFX:: ; 6813
 	call Call_6791
 	ret z
 	ld hl, CoinChannelData1
 	jp sfx_play__Jmp_69C6
 
+;@ --------------------------------------------------------------------
+;@ ContinueCoinSFX   [03:681D]   15 lines
+;@   calls     : ContinueSquareSFX, SetupChannel
+;@ --------------------------------------------------------------------
 ContinueCoinSFX:: ; 681D
 	ld hl, wSoundNoteIndex
 	inc [hl]
@@ -925,6 +988,10 @@ StompChannelData1::
 StompChannelData2::
 	db $57, $96, $8C, $35, $C7 ; 645 Hz
 
+;@ --------------------------------------------------------------------
+;@ StartStompSFX   [03:683D]   7 lines
+;@   calls     : Call_6791, sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartStompSFX:: ; 683D
 	call Call_6791.jmp_679C
 	ret z
@@ -932,6 +999,10 @@ StartStompSFX:: ; 683D
 	ld hl, StompChannelData1
 	jp sfx_play__Jmp_69C6
 
+;@ --------------------------------------------------------------------
+;@ ContinueStompSFX   [03:6849]   17 lines
+;@   calls     : ContinueSquareSFX, SetupChannel, updateSoundProgress
+;@ --------------------------------------------------------------------
 ContinueStompSFX:: ; 6849
 	call updateSoundProgress
 	and a
@@ -952,6 +1023,10 @@ ContinueStompSFX:: ; 6849
 FlowerChannelData:: ; 6863
 	db $54, $00, $9A, $20, $87 ; 585.1 Hz ~ D5 (though 721 is closer)
 
+;@ --------------------------------------------------------------------
+;@ StartFlowerSFX   [03:6868]   7 lines
+;@   calls     : sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartFlowerSFX:: ; 6868
 	ld a, $60
 	ld [$DFE6], a
@@ -962,6 +1037,10 @@ StartFlowerSFX:: ; 6868
 GrowChannelData:
 	db $27, $80, $8A, $10, $86 ; 264.3 Hz ~ C4 (17 cents off though)
 
+;@ --------------------------------------------------------------------
+;@ StartGrowSFX   [03:687A]   7 lines
+;@   calls     : sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartGrowSFX:: ; 687A
 	ld a, $10
 	ld [$DFE6], a
@@ -969,6 +1048,10 @@ StartGrowSFX:: ; 687A
 	ld hl, GrowChannelData
 	jp sfx_play__Jmp_69C6
 
+;@ --------------------------------------------------------------------
+;@ ContinueSweepSquareSFX   [03:6887]   17 lines
+;@   calls     : ContinueSquareSFX, updateSoundProgress
+;@ --------------------------------------------------------------------
 ContinueSweepSquareSFX::
 	call updateSoundProgress
 	and a
@@ -989,6 +1072,10 @@ ContinueSweepSquareSFX::
 BumpChannelData:: ; 
 	db $2C, $80, $D3, $40, $84 ; 136.5 Hz
 
+;@ --------------------------------------------------------------------
+;@ StartBumpSFX   [03:68A5]   7 lines
+;@   calls     : Call_6791, sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartBumpSFX:: ; 68A5
 	call Call_6791.jmp_679C
 	ret z
@@ -1001,6 +1088,10 @@ InjuryChannelData::
 InjuryEnvelopeData:
 	db $F3, $B3, $A3, $93, $83, $73, $63, $53, $43, $33, $23, $23, $13, $00
 
+;@ --------------------------------------------------------------------
+;@ StartInjurySFX   [03:68C4]   8 lines
+;@   calls     : sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartInjurySFX::
 	ld a, [$DFE1]
 	cp a, SFX_1UP
@@ -1009,6 +1100,11 @@ StartInjurySFX::
 	ld hl, InjuryChannelData
 	jp sfx_play__Jmp_69C6
 
+;@ --------------------------------------------------------------------
+;@ ContinueInjurySFX   [03:68D2]   33 lines
+;@   called by : InitSound
+;@   calls     : ContinueSquareSFX, updateSoundProgress
+;@ --------------------------------------------------------------------
 ContinueInjurySFX::
 	call updateSoundProgress
 	and a
@@ -1042,6 +1138,10 @@ ContinueInjurySFX::
 
 	ret
 
+;@ --------------------------------------------------------------------
+;@ StartOneUpSFX   [03:68F0]   6 lines
+;@   calls     : sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartOneUpSFX::
 	ld a, $06
 	ld hl, OneUpNote1
@@ -1061,6 +1161,12 @@ OneUpNote5::
 OneUpNote6::
 	db $00, $30, $F0, $CB, $C7 ; 2473 Hz ~ D#7 (11 cents flat)
 
+;@ --------------------------------------------------------------------
+;@ ContinueOneUpSFX   [03:6916]   40 lines
+;@   reads     : wSoundNoteIndex
+;@   writes    : wSoundNoteIndex
+;@   calls     : ContinueSquareSFX, SetupChannel, updateSoundProgress
+;@ --------------------------------------------------------------------
 ContinueOneUpSFX:: ; 6916
 	call updateSoundProgress
 	and a
@@ -1109,6 +1215,11 @@ StartExplosionSFX:: ; 6957
 	ld hl, ExplosionChannelData
 	jp sfx_play__Jmp_69C6
 
+;@ --------------------------------------------------------------------
+;@ Call_695F   [03:695F]   6 lines
+;@   called by : StartBrickShatterSFX, StartDeathCrySFX
+;@   reads     : wCurrentlyPlayingSound
+;@ --------------------------------------------------------------------
 Call_695F:: ; 695F
 	ld a, [wCurrentlyPlayingSound]
 	cp a, SFX_EXPLOSION
@@ -1124,6 +1235,10 @@ DeathCryChannelData:: ; 6966
 Data_696A:: ; 696A
 	db $1F, $2D, $2F, $3D, $3F, $00
 
+;@ --------------------------------------------------------------------
+;@ StartDeathCrySFX   [03:6970]   7 lines
+;@   calls     : Call_695F, sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartDeathCrySFX:: ; 6970
 	call Call_695F
 	ret z
@@ -1131,6 +1246,11 @@ StartDeathCrySFX:: ; 6970
 	ld hl, DeathCryChannelData
 	jp sfx_play__Jmp_69C6
 
+;@ --------------------------------------------------------------------
+;@ ContinueDeathCrySFX   [03:697C]   26 lines
+;@   writes    : rNR43
+;@   calls     : ContinueNoiseSFX, updateSoundProgress
+;@ --------------------------------------------------------------------
 ContinueDeathCrySFX:: ; 697C
 	call updateSoundProgress
 	and a
@@ -1168,6 +1288,10 @@ StartFireBreathSFX:: ; 6997
 BlockShatterChannelData:: ; 699F
 	db $00, $F2, $55, $80
 
+;@ --------------------------------------------------------------------
+;@ StartBrickShatterSFX   [03:69A3]   7 lines
+;@   calls     : Call_695F, sfx_play__Jmp_69C6
+;@ --------------------------------------------------------------------
 StartBrickShatterSFX:: ; 69A3
 	call Call_695F
 	ret z
@@ -1175,6 +1299,12 @@ StartBrickShatterSFX:: ; 69A3
 	ld hl, BlockShatterChannelData
 	jp sfx_play__Jmp_69C6
 
+;@ --------------------------------------------------------------------
+;@ ContinueNoiseSFX   [03:69AF]   24 lines
+;@   called by : ContinueDeathCrySFX
+;@   writes    : rNR42, rNR44, wCurrentlyPlayingSound
+;@   calls     : updateSoundProgress
+;@ --------------------------------------------------------------------
 ContinueNoiseSFX:: ; 69AF
 	call updateSoundProgress
 	and a
@@ -1199,6 +1329,11 @@ ContinueNoiseSFX:: ; 69AF
 
 ; write SFX data to the channels (from where?)
 ; DE starts at DFxx + 2 (DFE2, DFFA, like that)
+;@ --------------------------------------------------------------------
+;@ sfx_play__Jmp_69C6   [03:69C6]   53 lines
+;@   called by : StartBrickShatterSFX, StartBumpSFX, StartCoinSFX, StartDeathCrySFX, StartExplosionSFX, StartFireBreathSFX
+;@   calls     : SetupChannel
+;@ --------------------------------------------------------------------
 sfx_play__Jmp_69C6:: ; 69C6
 	push af
 	dec e			; using DFE- as example, but it holds for other engines as well
@@ -1333,6 +1468,11 @@ SetupWavePattern:: ; 6A26
 	pop bc
 	ret
 
+;@ --------------------------------------------------------------------
+;@ _InitSound   [03:6A33]   33 lines
+;@   called by : Call_6B8C, InitSound, UpdateSoundChannel, _Unreachable, _UpdateSound__6662
+;@   writes    : hPauseUnpauseMusic, rNR10, rNR12, rNR14, rNR22, rNR24, rNR30, rNR42
+;@ --------------------------------------------------------------------
 _InitSound:: ; 6A33
 	xor a
 	ld [$DFE1], a
@@ -1366,6 +1506,11 @@ _InitSound:: ; 6A33
 	ldh [rNR30], a	; disable wave  ; #MD: OK
 	ret
 
+;@ --------------------------------------------------------------------
+;@ PlaySquareSFX   [03:6A6A]   25 lines
+;@   called by : _UpdateSound__6662
+;@   calls     : LookupSoundPointer
+;@ --------------------------------------------------------------------
 PlaySquareSFX:: ; 6A6A
 	ld de, $DFE0			; non zero to start sfx
 	ld a, [de]
@@ -1391,6 +1536,11 @@ PlaySquareSFX:: ; 6A6A
 .out					; RET Z? Bug
 	ret
 
+;@ --------------------------------------------------------------------
+;@ PlayNoiseSFX   [03:6A8E]   25 lines
+;@   called by : _UpdateSound__6662
+;@   calls     : LookupSoundPointer
+;@ --------------------------------------------------------------------
 PlayNoiseSFX:: ; 6A8E
 	ld de, $DFF8
 	ld a, [de]
@@ -1419,6 +1569,13 @@ PlayNoiseSFX:: ; 6A8E
 _Unreachable: ; 6AB2
 	jp _InitSound
 
+;@ --------------------------------------------------------------------
+;@ StartMusic   [03:6AB5]   45 lines
+;@   called by : _UpdateSound__6662
+;@   reads     : wCurrentSong
+;@   writes    : hChannelEnableMask1, hChannelEnableMask2, hMonoOrStereo, hPanCounter, hPanInterval, hPanTimer, rNR51
+;@   calls     : Call_6B8C, LookupSoundPointer, _Unreachable
+;@ --------------------------------------------------------------------
 StartMusic:: ; 6AB5
 	ld hl, $DFE8
 	ldi a, [hl]
@@ -1464,6 +1621,12 @@ StartMusic:: ; 6AB5
 	ldh [hPanCounter], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ PanExplosion   [03:6AF6]   14 lines
+;@   called by : PanStereo
+;@   reads     : wCurrentlyPlayingSound
+;@   calls     : PanStereo
+;@ --------------------------------------------------------------------
 PanExplosion:: ; 6AF6
 	ld a, [wCurrentlyPlayingSound]
 	cp a, SFX_EXPLOSION		; Hmh?
@@ -1478,6 +1641,13 @@ PanExplosion:: ; 6AF6
 .ret
 	ret
 
+;@ --------------------------------------------------------------------
+;@ PanStereo   [03:6B09]   32 lines
+;@   called by : PanExplosion, _UpdateSound__6662
+;@   reads     : hChannelEnableMask1, hChannelEnableMask2, hMonoOrStereo, wCurrentSong
+;@   writes    : rNR51
+;@   calls     : PanExplosion
+;@ --------------------------------------------------------------------
 PanStereo:: ; 6B09
 	ld a, [wCurrentSong]
 	and a
@@ -1556,6 +1726,11 @@ CopyPointer:: ; 6B86
 
 ; setup array of addresses and such at DF00-DF4F
 ; HL contains the pointer from Data_663C
+;@ --------------------------------------------------------------------
+;@ Call_6B8C   [03:6B8C]   46 lines
+;@   called by : StartMusic
+;@   calls     : CopyPointer, CopyPointerIndirect, _InitSound
+;@ --------------------------------------------------------------------
 Call_6B8C::; 6B8C
 	call _InitSound.muteChannels
 	xor a
@@ -1602,6 +1777,12 @@ Call_6B8C::; 6B8C
 	ld [$DF3E], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ Jmp_6BF4   [03:6BF4]   10 lines
+;@   called by : Jmp_6C00
+;@   writes    : rNR30
+;@   calls     : Jmp_6C00, SetupWavePattern
+;@ --------------------------------------------------------------------
 Jmp_6BF4: ; 6BF4
 	push hl
 	xor a
@@ -1612,6 +1793,11 @@ Jmp_6BF4: ; 6BF4
 	pop hl
 	jr Jmp_6C00.jmp_6C2A
 
+;@ --------------------------------------------------------------------
+;@ Jmp_6C00   [03:6C00]   32 lines
+;@   called by : Jmp_6BF4, PlayMusic
+;@   calls     : IncrementPointer, Jmp_6BF4, LoadFromHLindirect, PlayMusic
+;@ --------------------------------------------------------------------
 Jmp_6C00: ; 6C00
 	call IncrementPointer
 	call LoadFromHLindirect
@@ -1659,6 +1845,11 @@ IncrementPointer:: ; 6C30
 	pop de
 	ret
 
+;@ --------------------------------------------------------------------
+;@ IncrementPointerTwice   [03:6C3C]   11 lines
+;@   called by : UpdateSoundChannel
+;@   calls     : IncrementPointer
+;@ --------------------------------------------------------------------
 IncrementPointerTwice:: ; 6C3C
 	push de
 	ldi a, [hl]
@@ -1679,7 +1870,14 @@ LoadFromHLindirect:: ; 6C45
 	ld b, a				; B ← [BC]
 	ret
 
-Jmp_6C4C:
+;@ --------------------------------------------------------------------
+;@ UpdateSoundChannel   [03:6C4C]   88 lines
+;@   called by : PlayMusic
+;@   reads     : hCurrentChannel
+;@   writes    : rNR32, rNR51
+;@   calls     : CopyPointerIndirect, IncrementPointer, IncrementPointerTwice, LoadFromHLindirect, PlayMusic, _InitSound
+;@ --------------------------------------------------------------------
+UpdateSoundChannel:
 	pop hl
 	jr .jmp_6C7A
 
@@ -1711,12 +1909,12 @@ Jmp_6C4C:
 	ld l, a
 	ld a, [hl]			; DFxB
 	and a
-	jr nz, Jmp_6C4C
+	jr nz, UpdateSoundChannel
 	ld a, l
 	add a, $04
 	ld l, a
 	bit 7, [hl]			; DFxF lock status
-	jr nz, Jmp_6C4C		; jump if locked
+	jr nz, UpdateSoundChannel		; jump if locked
 	pop hl
 	call PlayMusic.jmp_6DDC
 .jmp_6C7A
@@ -1767,6 +1965,13 @@ Jmp_6C4C:
 	call _InitSound.muteChannels
 	ret
 
+;@ --------------------------------------------------------------------
+;@ PlayMusic   [03:6CBE]   361 lines
+;@   called by : Data_6F8F, Jmp_6C00, UpdateSoundChannel, _UpdateSound__6662
+;@   reads     : hCurrentChannel
+;@   writes    : hCurrentChannel
+;@   calls     : IncrementPointer, Jmp_6C00, LoadFromHLindirect, UpdateSoundChannel
+;@ --------------------------------------------------------------------
 PlayMusic:: ; 6CBE
 	ld hl, wCurrentSong				; music currently playing
 	ld a, [hl]
@@ -1779,16 +1984,16 @@ PlayMusic:: ; 6CBE
 	inc l
 	ldi a, [hl]					; DFx1
 	and a
-	jp z, Jmp_6C4C.jmp_6C7A
+	jp z, UpdateSoundChannel.jmp_6C7A
 	dec [hl]					; DFx2
-	jp nz, Jmp_6C4C.jmp_6C4F
+	jp nz, UpdateSoundChannel.jmp_6C4F
 .jmp_6CD5
 	inc l
 	inc l
 .jmp_6CD7
 	call LoadFromHLindirect		; DFx4 - DFx5
 	cp a, $00					; stores a copy in B
-	jp z, Jmp_6C4C.jmp_6C7F
+	jp z, UpdateSoundChannel.jmp_6C7F
 	cp a, $9D
 	jp z, Jmp_6C00
 	and a, $F0
@@ -2262,6 +2467,11 @@ Data_6F86:: ; 6F86
 	db       21, 42, 84
 
 ; Unused, 8/7 times slower than the previous one
+;@ --------------------------------------------------------------------
+;@ Data_6F8F   [03:6F8F]   258 lines
+;@   writes    : rNR10, rNR11, rNR12, rNR13, rNR14, rNR21, rNR22, rNR23
+;@   calls     : PlayMusic
+;@ --------------------------------------------------------------------
 Data_6F8F:: ; 6F8F
 	db 4, 8, 16, 32, 64, 128
 	db       24, 48, 96
@@ -2523,6 +2733,11 @@ SECTION "Banked Sound Wrappers", ROMX[$7FF0], BANK[3]
 UpdateSoundWrapper__7FF0:: ; 7FF0
     jp _UpdateSound__6662
 
+;@ --------------------------------------------------------------------
+;@ InitSound   [03:7FF3]   22 lines
+;@   called by : GameState_06_LevelWon, GameState_0F, GameState_1E_OpenGate, GameState_38, Init, StartLevelMusic
+;@   calls     : ContinueInjurySFX, _InitSound
+;@ --------------------------------------------------------------------
 InitSound:: ; 7FF3
 	jp _InitSound
 

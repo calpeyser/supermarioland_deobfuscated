@@ -1,3 +1,4 @@
+INCLUDE "constants.asm"
 INCLUDE "charmap.asm"
 INCLUDE "inc/hardware.inc"
 
@@ -54,6 +55,11 @@ GameState_1A:: ; 5841
 	jp _GameState_1A
 
 ; why
+;@ --------------------------------------------------------------------
+;@ UpdateTimerAndFloaties   [02:5844]   7 lines
+;@   called by : GameState_00_Gameplay, GameState_05_LevelClearScoring, GameState_0D
+;@   calls     : UpdateFloaties, UpdateGameTimer
+;@ --------------------------------------------------------------------
 UpdateTimerAndFloaties:: ; 5844
 	call UpdateGameTimer
 	call UpdateFloaties
@@ -61,6 +67,12 @@ UpdateTimerAndFloaties:: ; 5844
 
 ; Make the Timer count down. The logic in this routine is unnecessarily
 ; convoluted. Bug
+;@ --------------------------------------------------------------------
+;@ UpdateGameTimer   [02:584B]   57 lines
+;@   called by : UpdateTimerAndFloaties
+;@   reads     : wGameTimerExpiringFlag
+;@   writes    : rTMA
+;@ --------------------------------------------------------------------
 UpdateGameTimer:: ; 584B
 	ld a, [wGameTimerExpiringFlag]
 	cp a, 3
@@ -118,6 +130,13 @@ UpdateGameTimer:: ; 584B
 	ldh [rTMA], a		; speed up timer
 	ret
 
+;@ --------------------------------------------------------------------
+;@ UpdateFloaties   [02:5892]   313 lines
+;@   called by : UpdateTimerAndFloaties
+;@   reads     : hFloatyControl, hFloatyX, hFloatyY, wFloaty0_IsCoin, wFloaty1_IsCoin, wFloaty2_IsCoin, wFloaty3_IsCoin, wNextFloatyOAMIndex
+;@   writes    : hFloatyControl, hFloatyX, hFloatyY, wFloaty0_IsCoin, wFloaty0_SpriteIfCoin, wFloaty0_TTL, wFloaty1_IsCoin, wFloaty1_SpriteIfCoin
+;@   calls     : AddScore
+;@ --------------------------------------------------------------------
 UpdateFloaties:: ; 5892
 	ldh a, [hFloatyControl]
 	ld b, a
@@ -431,6 +450,12 @@ UpdateFloaties:: ; 5892
 	ret
 
 ; setup Mario's sprite in OAM
+;@ --------------------------------------------------------------------
+;@ _GameState_14   [02:5A72]   59 lines
+;@   called by : GameState_14
+;@   reads     : hSuperStatus, rDIV
+;@   writes    : hGameState
+;@ --------------------------------------------------------------------
 _GameState_14:: ; 5A72
 	ld hl, wOAMBuffer + 4*$C
 	ldh a, [rDIV]
@@ -490,6 +515,12 @@ _GameState_14:: ; 5A72
 	ldh [hGameState], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ _GameState_15   [02:5ABB]   115 lines
+;@   called by : GameState_15
+;@   reads     : hJoyHeld, wLadderStatus
+;@   writes    : hGameState, wLadderLocationHi, wLadderLocationLo, wLadderStatus
+;@ --------------------------------------------------------------------
 _GameState_15:: ; 5ABB
 	ld a, [wLadderStatus]	; ladder status?
 	bit 0, a
@@ -592,7 +623,7 @@ _GameState_15:: ; 5ABB
 	ld a, $2D
 	ld [hl], a
 .jmp_5B51
-	ld a, $16
+	ld a, GAMESTATE_DRAW_LADDER
 	ldh [hGameState], a
 	ret
 
@@ -605,6 +636,13 @@ _GameState_15:: ; 5ABB
 	ldh [hGameState], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ _GameState_17   [02:5B65]   91 lines
+;@   called by : GameState_17
+;@   reads     : hSuperStatus
+;@   writes    : hGameState
+;@   calls     : LookupTile
+;@ --------------------------------------------------------------------
 _GameState_17:: ; 5B65
 	ld hl, $DA1C			; 1 if walking
 	ld a, [hl]
@@ -696,6 +734,12 @@ _GameState_17:: ; 5B65
 	ldh [hGameState], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ _GameState_18   [02:5BEB]   59 lines
+;@   called by : GameState_18
+;@   reads     : hSuperStatus
+;@   writes    : hGameState
+;@ --------------------------------------------------------------------
 _GameState_18:: ; 5BEB
 	ld hl, wOAMBuffer + 4*$C
 	ld b, $04			; 4 objects per sprite
@@ -755,6 +799,12 @@ _GameState_18:: ; 5BEB
 	ldh [hGameState], a
 	ret
 
+;@ --------------------------------------------------------------------
+;@ _GameState_19   [02:5C44]   60 lines
+;@   called by : GameState_19
+;@   reads     : hSuperStatus
+;@   writes    : hGameState
+;@ --------------------------------------------------------------------
 _GameState_19:: ; 5C44
 	ld hl, wOAMBuffer + 4*$C
 	ld b, $04			; 4 objects per sprite
@@ -834,6 +884,13 @@ Data_5C9D:: ; FC9D
 	db $04, $05, $14, $15
 	db $FF
 
+;@ --------------------------------------------------------------------
+;@ _GameState_1A   [02:5CDE]   397 lines
+;@   called by : GameState_1A
+;@   reads     : hSuperStatus, hSuperballMario, wBonusGameAnimationTimer, wBonusGameEndTimer, wBonusGameGrowAnimationFlag, wLives, wOAMBuffer
+;@   writes    : hGameState, hSuperStatus, hSuperballMario, wBonusGameAnimationTimer, wBonusGameEndTimer, wBonusGameGrowAnimationFlag, wLives
+;@   calls     : LookupTile
+;@ --------------------------------------------------------------------
 _GameState_1A:: ; 5CDE
 	ld a, [$DA17]
 	and a
@@ -947,7 +1004,7 @@ _GameState_1A:: ; 5CDE
 	ld [$DA16], a
 	ld a, $40
 	ld [wBonusGameAnimationTimer], a
-	ld a, $1B
+	ld a, GAMESTATE_LEAVE_BONUS_GAME
 	ldh [hGameState], a		; Leave bonus game
 	ret
 
